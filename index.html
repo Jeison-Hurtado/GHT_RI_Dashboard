@@ -11,6 +11,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════
    VARIABLES GLOBALES · SISTEMA UNIFICADO GHT-RI 2026
@@ -87,6 +90,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .alert-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
 .alert-err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
 @keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes syncPulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:.6}100%{transform:scale(1);opacity:1}}
 
 /* ── CHIPS ── */
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid transparent;white-space:nowrap}
@@ -1323,46 +1327,104 @@ Chart.register(ChartDataLabels);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  MOTOR DE ALMACENAMIENTO COMPARTIDO — GHT RI 2026
-//  Usa window.storage (API de Claude artifacts) para datos compartidos.
-//  Fallback a localStorage si window.storage no está disponible.
+//  Firebase Firestore — sincronización en tiempo real entre equipos
 // ═══════════════════════════════════════════════════════════════════════
-var _sharedCache = {};   // cache en memoria para lecturas síncronas
+var _sharedCache = {};
 var _storageReady = false;
-var _storageQueue = [];  // writes pendientes mientras se inicializa
-
 var _SHARED_KEYS = ['ri2026v4','ght_v2','ri2026_plan_edits','ri2026_ejecucion_log'];
+var _db = null;           // instancia Firestore
+var _fsListeners = {};    // listeners en tiempo real activos
 
-// Escritura: guarda en cache + dispara async a window.storage
+// ── Escritura: guarda en cache + Firestore ──────────────────────────
 function _sharedSet(key, val) {
   _sharedCache[key] = val;
-  if (window.storage) {
-    window.storage.set(key, val, true).catch(function(){
-      try { localStorage.setItem(key, val); } catch(e){}
-    });
+  if (_db) {
+    try {
+      _db.collection('ght_ri_2026').doc(key).set({ value: val, ts: Date.now() })
+        .catch(function(e){ console.warn('Firestore write error:', e); });
+    } catch(e) { console.warn('Firestore set error:', e); }
   } else {
-    try { localStorage.setItem(key, val); } catch(e){}
+    try { localStorage.setItem(key, val); } catch(e) {}
   }
 }
 
-// Inicialización: carga todos los keys compartidos antes de llamar init()
-async function initSharedStorage(callback) {
-  if (window.storage) {
-    try {
-      for (var i = 0; i < _SHARED_KEYS.length; i++) {
-        var k = _SHARED_KEYS[i];
-        try {
-          var result = await window.storage.get(k, true);
-          if (result && result.value != null) _sharedCache[k] = result.value;
-        } catch(e) { /* key doesn't exist yet */ }
+// ── Listener en tiempo real para un key ────────────────────────────
+function _sharedListen(key) {
+  if (!_db || _fsListeners[key]) return;
+  _fsListeners[key] = _db.collection('ght_ri_2026').doc(key)
+    .onSnapshot(function(doc) {
+      if (!doc.exists) return;
+      var newVal = doc.data().value;
+      if (newVal === _sharedCache[key]) return; // sin cambios
+      _sharedCache[key] = newVal;
+      // Recargar el módulo correspondiente sin recargar toda la página
+      try {
+        if (key === 'ri2026v4')           { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
+        if (key === 'ght_v2')             { loadAcompData(); renderHoy(); }
+        if (key === 'ri2026_plan_edits')  { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){planEdits={};} renderPlan(); }
+        if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ejecucionLog=[];} }
+      } catch(e) { /* función aún no lista */ }
+      // Indicador visual de sync
+      var si = document.getElementById('sync-status');
+      if (si) {
+        si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block;animation:syncPulse .6s ease"></span> Sincronizado';
+        si.style.color = '#2d5a3d';
+        setTimeout(function(){ si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> Datos compartidos activos'; si.style.color=''; }, 2500);
       }
-    } catch(e) {}
-  } else {
-    // Fallback: leer desde localStorage
+    }, function(err){ console.warn('Listener error:', err); });
+}
+
+// ── Inicialización: conecta Firestore y carga datos ─────────────────
+async function initSharedStorage(callback) {
+  try {
+    // Inicializar Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyDteTxhix2dkopNZYs-QizOLQTaBAH0gAE",
+        authDomain: "ght-ri-2026.firebaseapp.com",
+        projectId: "ght-ri-2026",
+        storageBucket: "ght-ri-2026.firebasestorage.app",
+        messagingSenderId: "742764367142",
+        appId: "1:742764367142:web:145f83c6a7a162d0b0c5e7"
+      });
+    }
+    _db = firebase.firestore();
+
+    // Cargar todos los keys inicialmente
+    for (var i = 0; i < _SHARED_KEYS.length; i++) {
+      var k = _SHARED_KEYS[i];
+      try {
+        var snap = await _db.collection('ght_ri_2026').doc(k).get();
+        if (snap.exists && snap.data().value != null) {
+          _sharedCache[k] = snap.data().value;
+        }
+      } catch(e) { /* doc aún no existe */ }
+    }
+
+    // Activar listeners en tiempo real
+    _SHARED_KEYS.forEach(function(k){ _sharedListen(k); });
+
+    // Indicador de conexión exitosa
+    var si = document.getElementById('sync-status');
+    if (si) {
+      si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block"></span> Firebase conectado ✓';
+      si.style.color = '#2d5a3d';
+    }
+
+  } catch(e) {
+    console.warn('Firebase no disponible, usando localStorage:', e);
+    // Fallback a localStorage
     _SHARED_KEYS.forEach(function(k){
       var v = localStorage.getItem(k);
       if (v != null) _sharedCache[k] = v;
     });
+    var si = document.getElementById('sync-status');
+    if (si) {
+      si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span> Modo local (sin conexión)';
+      si.style.color = '#92400e';
+    }
   }
+
   _storageReady = true;
   if (callback) callback();
 }
