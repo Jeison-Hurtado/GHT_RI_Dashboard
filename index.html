@@ -903,17 +903,8 @@ tr:hover td{background:var(--bg)}
         <button onclick="exportarPlanExcel()" style="padding:6px 14px;border:none;border-radius:6px;background:#1565c0;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
       </div>
     </div>
-    <!-- Sub-pestañas Vista Diaria / Vista Semanal -->
-    <div style="display:flex;gap:0;border-bottom:2px solid #1b5e20;margin-bottom:14px">
-      <button class="ejec-main-view-btn active" data-view="diaria" onclick="setEjecMainView('diaria',this)"
-        style="padding:9px 22px;border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;cursor:pointer;background:#1b5e20;color:#fff;margin-right:2px;font-family:inherit">
-        <i class="ti ti-sun"></i> Vista Diaria
-      </button>
-      <button class="ejec-main-view-btn" data-view="semanal" onclick="setEjecMainView('semanal',this)"
-        style="padding:9px 22px;border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text);font-family:inherit">
-        <i class="ti ti-calendar-week"></i> Vista Semanal
-      </button>
-    </div>
+    <!-- Vista única integrada: las sub-pestañas Diaria/Semanal fueron eliminadas.
+         El seguimiento se realiza con los filtros Q · Mes · Semana de esta misma vista. -->
     <!-- Filtros (sin filtro de responsable — viene del filtro global) -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end;background:var(--surface);padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
       <div style="display:flex;flex-direction:column;gap:3px">
@@ -1632,7 +1623,7 @@ Chart.register(ChartDataLabels);
 // ═══════════════════════════════════════════════════════════════════════
 var _sharedCache = {};
 var _storageReady = false;
-var _SHARED_KEYS = ['ri2026v4','ght_v2','ri2026_plan_edits','ri2026_ejecucion_log'];
+var _SHARED_KEYS = ['ri2026v4','ght_v2','ri2026_plan_edits','ri2026_ejecucion_log','ri2026_histsem','ri2026_logros_edits'];
 var _db = null;
 var _fsListeners = {};
 
@@ -1661,6 +1652,8 @@ function _sharedListen(key) {
         if (key === 'ri2026v4')            { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
         if (key === 'ght_v2')              { loadAcompData(); renderHoy(); }
         if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); }
+        if (key === 'ri2026_histsem')      { try{ loadHistSem(); }catch(e){} }
+        if (key === 'ri2026_logros_edits') { try{ _logrosEdits=JSON.parse(newVal||'{}'); }catch(e){} }
         if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
       } catch(e) { /* función aún no lista */ }
       // Indicador visual de sync
@@ -2062,6 +2055,30 @@ function loadData(){
   if(!tareas.length) tareas=getSampleTasks();
 }
 function saveData(){ _sharedSet('ri2026v4', JSON.stringify({tareas,nextId})); }
+
+// ── Persistencia del histórico de ejecución semanal (_histSem) ──────────────
+// Garantiza que actividades realizadas, observaciones y compromisos registrados
+// en Ver/Editar Detalle se conserven de forma permanente.
+function saveHistSem(){
+  try{
+    var map={};
+    (PLAN_ROWS_FULL||[]).forEach(function(r,i){
+      if(r._histSem && Object.keys(r._histSem).length) map[i]=r._histSem;
+    });
+    _sharedSet('ri2026_histsem', JSON.stringify(map));
+  }catch(e){}
+}
+function loadHistSem(){
+  try{
+    var raw=_sharedCache['ri2026_histsem']||null;
+    if(!raw) return;
+    var map=JSON.parse(raw)||{};
+    Object.keys(map).forEach(function(i){
+      var idx=parseInt(i);
+      if(PLAN_ROWS_FULL[idx]) PLAN_ROWS_FULL[idx]._histSem=map[i];
+    });
+  }catch(e){}
+}
 function loadAcompData(){
   try{
     const raw=_sharedCache['ght_v2']||null;
@@ -4472,12 +4489,15 @@ function guardarDesdeDetalle(origIdx){
   }
 
   saveData();
+  saveHistSem(); // persistir narrativa semanal de forma permanente
   panel.remove();
   if (typeof renderEjecucionPlan === 'function') renderEjecucionPlan();
   else if (typeof renderRegistroForm === 'function') renderRegistroForm();
   // Refrescar Plan Estratégico 2026 e informes relacionados
   if (typeof renderPlan === 'function') { try { renderPlan(); } catch(e){} }
   if (typeof renderDashboard === 'function') { try { renderDashboard(); } catch(e){} }
+  // Reabrir la ficha con la información registrada visible (no se oculta tras guardar)
+  setTimeout(function(){ try { abrirDetalleActividad(origIdx); } catch(e){} }, 150);
 
   const toast = document.createElement('div');
   toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1b5e20;color:#fff;padding:10px 24px;border-radius:30px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.3)';
@@ -7162,6 +7182,7 @@ function init(){
   try { planEdits=JSON.parse(_sharedCache['ri2026_plan_edits']||'{}'); } catch(e){ planEdits={}; }
   try { ejecucionLog=JSON.parse(_sharedCache['ri2026_ejecucion_log']||'[]'); } catch(e){ ejecucionLog=[]; }
   loadData();
+  loadHistSem(); // restaurar histórico de ejecución semanal registrado
   autoVencer();
   loadAcompData();
   populateSelectors();
