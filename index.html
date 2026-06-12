@@ -1627,17 +1627,85 @@ var _SHARED_KEYS = ['ri2026v4','ght_v2','ri2026_plan_edits','ri2026_ejecucion_lo
 var _db = null;
 var _fsListeners = {};
 
-// ── Escritura: cache + Firestore ────────────────────────────────────
+// ── Escritura blindada: cache + localStorage (siempre) + Firestore con reintentos ──
+var _pendingWrites = {};   // key → val pendiente de subir a Firestore
+var _fsRetryTimer = null;
+
 function _sharedSet(key, val) {
   _sharedCache[key] = val;
-  if (_db) {
-    _db.collection('ght_ri_2026').doc(key)
-      .set({ value: val, ts: Date.now() })
-      .catch(function(e){ console.warn('Firestore write error:', e); });
-  } else {
-    try { localStorage.setItem(key, val); } catch(e) {}
+  // Respaldo local SIEMPRE — ningún dato se pierde aunque Firestore falle
+  try { localStorage.setItem(key, val); } catch(e) {}
+  _fsWrite(key, val);
+}
+
+function _fsWrite(key, val) {
+  if (!_db) { _pendingWrites[key] = val; _fsScheduleRetry(); return; }
+  _db.collection('ght_ri_2026').doc(key)
+    .set({ value: val, ts: Date.now() })
+    .then(function(){ delete _pendingWrites[key]; })
+    .catch(function(e){
+      console.warn('Firestore write error (se reintentará):', e);
+      _pendingWrites[key] = val;
+      _fsScheduleRetry();
+      _fsSetStatus('retry');
+    });
+}
+
+function _fsFlushPending() {
+  var keys = Object.keys(_pendingWrites);
+  if (!keys.length) return;
+  keys.forEach(function(k){ _fsWrite(k, _pendingWrites[k]); });
+}
+
+function _fsScheduleRetry() {
+  if (_fsRetryTimer) return;
+  _fsRetryTimer = setTimeout(function(){
+    _fsRetryTimer = null;
+    if (!_db) { _fsReconnect(); }
+    _fsFlushPending();
+  }, 8000);
+}
+
+// ── Reconexión automática de Firebase ───────────────────────────────
+var _fsReconnecting = false;
+function _fsReconnect() {
+  if (_db || _fsReconnecting) return;
+  _fsReconnecting = true;
+  try {
+    initSharedStorage(function(){
+      _fsReconnecting = false;
+      if (_db) { _fsFlushPending(); _fsSetStatus('ok'); }
+    });
+  } catch(e) { _fsReconnecting = false; }
+}
+
+// ── Indicador visual de estado de conexión ──────────────────────────
+function _fsSetStatus(state) {
+  var si = document.getElementById('sync-status');
+  if (!si) return;
+  if (state === 'ok') {
+    si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block"></span> Firebase conectado ✓';
+    si.style.color = '#2d5a3d';
+  } else if (state === 'retry') {
+    si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span> Reconectando… (datos protegidos localmente)';
+    si.style.color = '#92400e';
+  } else if (state === 'off') {
+    si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span> Sin conexión — guardando localmente';
+    si.style.color = '#92400e';
   }
 }
+
+// ── Vigilancia permanente: reconectar + vaciar pendientes ───────────
+window.addEventListener('online', function(){
+  _fsSetStatus('retry');
+  if (!_db) _fsReconnect();
+  _fsFlushPending();
+});
+window.addEventListener('offline', function(){ _fsSetStatus('off'); });
+setInterval(function(){
+  if (!_db) _fsReconnect();
+  else _fsFlushPending();
+}, 30000); // watchdog cada 30s — el tablero nunca queda desconectado
 
 // ── Listener en tiempo real para un key ────────────────────────────
 function _sharedListen(key) {
@@ -1666,7 +1734,13 @@ function _sharedListen(key) {
           si.style.color = '';
         }, 2500);
       }
-    }, function(err){ console.warn('Listener error:', err); });
+    }, function(err){
+      console.warn('Listener error (re-suscribiendo):', err);
+      try { if (_fsListeners[key]) { _fsListeners[key](); } } catch(e2){}
+      delete _fsListeners[key];
+      _fsSetStatus('retry');
+      setTimeout(function(){ _sharedListen(key); }, 6000); // re-suscripción automática
+    });
 }
 
 // ── Inicialización ──────────────────────────────────────────────────
@@ -1684,13 +1758,20 @@ async function initSharedStorage(callback) {
     }
     _db = firebase.firestore();
 
+    // Persistencia offline nativa: el SDK encola escrituras y las envía al reconectar
+    try { await _db.enablePersistence({ synchronizeTabs: true }); }
+    catch(e) { /* multi-tab o navegador sin soporte: continúa sin persistencia nativa */ }
+
     // Carga inicial de todos los keys
     for (var i = 0; i < _SHARED_KEYS.length; i++) {
       var k = _SHARED_KEYS[i];
       try {
         var snap = await _db.collection('ght_ri_2026').doc(k).get();
         if (snap.exists && snap.data().value != null) _sharedCache[k] = snap.data().value;
-      } catch(e) { /* doc aún no existe */ }
+        else { var lv = localStorage.getItem(k); if (lv != null) { _sharedCache[k] = lv; _fsWrite(k, lv); } }
+      } catch(e) {
+        var lv2 = localStorage.getItem(k); if (lv2 != null) _sharedCache[k] = lv2;
+      }
     }
 
     // Activar listeners en tiempo real
@@ -1704,16 +1785,14 @@ async function initSharedStorage(callback) {
     }
 
   } catch(e) {
-    console.warn('Firebase no disponible, usando localStorage:', e);
+    console.warn('Firebase no disponible, usando localStorage (se reintentará automáticamente):', e);
+    _db = null;
     _SHARED_KEYS.forEach(function(k){
       var v = localStorage.getItem(k);
       if (v != null) _sharedCache[k] = v;
     });
-    var si = document.getElementById('sync-status');
-    if (si) {
-      si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span> Modo local (sin internet)';
-      si.style.color = '#92400e';
-    }
+    _fsSetStatus('off');
+    _fsScheduleRetry(); // el watchdog seguirá intentando reconectar — nunca queda desconectado
   }
 
   _storageReady = true;
@@ -6002,7 +6081,24 @@ function renderMensual(){
     var _mLab = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][_mSel]||'';
     renderInformeEjecutivoBlock({containerId:'ie-mensual', periodoLabel:_mLab+' 2026', mesesNums:[_mSel], fResp:(document.getElementById('fm-resp')||{}).value||'', chartPrefix:'iemen'});
     // Resumen de logros por línea de intervención (formato lámina mensual)
-    renderLogrosPorLinea(_mSel, 'ie-mensual-logros', (document.getElementById('fm-resp')||{}).value||'');
+    // Posicionado POR ENCIMA de las Alertas de desviación dentro del bloque ejecutivo
+    var _ieCont = document.getElementById('ie-mensual');
+    var _fmR = (document.getElementById('fm-resp')||{}).value||'';
+    if (_ieCont) {
+      var _alertEl = null;
+      _ieCont.querySelectorAll(':scope > div').forEach(function(dv){
+        if (!_alertEl && dv.textContent.indexOf('Alertas de desviación') > -1) _alertEl = dv;
+      });
+      var _slot = document.createElement('div');
+      _slot.id = 'ie-mensual-logros-top';
+      if (_alertEl) _ieCont.insertBefore(_slot, _alertEl);
+      else _ieCont.appendChild(_slot);
+      var _oldL = document.getElementById('ie-mensual-logros');
+      if (_oldL) _oldL.innerHTML = '';
+      renderLogrosPorLinea(_mSel, 'ie-mensual-logros-top', _fmR);
+    } else {
+      renderLogrosPorLinea(_mSel, 'ie-mensual-logros', _fmR);
+    }
   } catch(e){}
   const filtResp=document.getElementById('fm-resp')?.value||'';
   const mesSel=document.getElementById('mes-sel');
@@ -9735,7 +9831,9 @@ function ieConsolidar(mesesNums, fResp) {
 
   var res = {
     plan:0, ejec:0,
-    porLinea:{},          // linea → {plan, ejec}
+    planAnual:0, ejecAcum:0,     // % siempre respecto al AÑO: plan total 2026 vs ejecutado acumulado al cierre del período
+    porLinea:{},          // linea → {plan, ejec} (del período)
+    porLineaAnual:{},     // linea → {plan, ejec} (anual / acumulado)
     porMes:{},            // mesNum → {plan, ejec}
     porSemana:{},         // isoWeek → {plan, ejec}
     iniciativas:0, completadas:0, enProceso:0, noIniciadas:0,
@@ -9743,9 +9841,28 @@ function ieConsolidar(mesesNums, fResp) {
     tareas:{total:0, ejecutadas:0, vencidas:0, pendientes:0},
     visitas:{total:0, completadas:0, porTipo:{}},
   };
+  var _maxMes = Math.max.apply(null, mesesNums.length?mesesNums:[12]);
 
   (PLAN_ROWS_FULL||[]).forEach(function(row, origIdx) {
     if (!matchResp(row.responsable)) return;
+    // ── Acumulado anual: plan de los 12 meses + ejecución hasta el cierre del período ──
+    var _lin0 = row.linea||'Otra';
+    var rowPlanAnual=0, rowEjecAcum=0;
+    for (var _mn=1; _mn<=12; _mn++) {
+      var _mk = mesAbr[_mn];
+      var _mm = row.meses && row.meses[_mk];
+      if (!_mm) continue;
+      rowPlanAnual += _mm.p||0;
+      if (_mn <= _maxMes) {
+        rowEjecAcum += typeof getPlanE==='function' ? getPlanE(origIdx, _mk, _mm.e||0) : (_mm.e||0);
+      }
+    }
+    if (rowPlanAnual>0 || rowEjecAcum>0) {
+      res.planAnual += rowPlanAnual; res.ejecAcum += rowEjecAcum;
+      if (!res.porLineaAnual[_lin0]) res.porLineaAnual[_lin0]={plan:0,ejec:0};
+      res.porLineaAnual[_lin0].plan += rowPlanAnual;
+      res.porLineaAnual[_lin0].ejec += rowEjecAcum;
+    }
     var rowPlan=0, rowEjec=0;
     mesesNums.forEach(function(mn) {
       var mk = mesAbr[mn];
@@ -9819,7 +9936,9 @@ function renderInformeEjecutivoBlock(opts) {
   if (!cont) return;
   var d = ieConsolidar(opts.mesesNums, opts.fResp||'');
   _IE_LAST[opts.chartPrefix] = {d:d, opts:opts}; // para drill-down de análisis detallado
-  var pct = d.plan>0 ? Math.round(d.ejec/d.plan*100) : 0;
+  // % SIEMPRE respecto al año: ejecutado acumulado / plan anual 2026
+  var pct = d.planAnual>0 ? Math.round(d.ejecAcum/d.planAnual*100) : 0;
+  var pctPeriodo = d.plan>0 ? Math.round(d.ejec/d.plan*100) : 0;
   var pctCol = pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828';
   var cumplCol = pct>=80?'#e8f5e9':pct>=50?'#fff3e0':'#ffebee';
   var hoy = new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'});
@@ -9828,15 +9947,16 @@ function renderInformeEjecutivoBlock(opts) {
 
   // ── Resumen ejecutivo narrativo ──
   var topLinea='', topPct=-1, lowLinea='', lowPct=999;
-  Object.keys(d.porLinea).forEach(function(l){
-    var ld=d.porLinea[l];
+  var _plMap = d.porLineaAnual||d.porLinea;
+  Object.keys(_plMap).forEach(function(l){
+    var ld=_plMap[l];
     var lp=ld.plan>0?Math.round(ld.ejec/ld.plan*100):0;
     if (ld.plan>0 && lp>topPct){topPct=lp;topLinea=l;}
     if (ld.plan>0 && lp<lowPct){lowPct=lp;lowLinea=l;}
   });
   var linShort=function(l){var o=LINEAS.find(function(x){return x.rawName===l;});return o?o.short:(typeof _lineaShort==='function'?_lineaShort(l):l);};
 
-  var resumenTxt = 'En el período <strong>'+opts.periodoLabel+'</strong> se planearon <strong>'+d.plan+'</strong> actividades estratégicas, de las cuales se ejecutaron <strong>'+d.ejec+'</strong> ('+pct+'% de cumplimiento). '
+  var resumenTxt = 'En el período <strong>'+opts.periodoLabel+'</strong> se planearon <strong>'+d.plan+'</strong> actividades estratégicas, de las cuales se ejecutaron <strong>'+d.ejec+'</strong> ('+pctPeriodo+'% del período). El avance acumulado frente al plan anual 2026 es del <strong>'+pct+'%</strong> ('+d.ejecAcum+'/'+d.planAnual+' act.). '
     + (topLinea?('La línea con mejor desempeño es <strong>'+linShort(topLinea)+'</strong> ('+topPct+'%). '):'')
     + (lowLinea&&lowLinea!==topLinea?('La línea que requiere atención es <strong>'+linShort(lowLinea)+'</strong> ('+lowPct+'%). '):'')
     + (d.alertas.length?('<span style="color:#c62828;font-weight:700">'+d.alertas.length+' iniciativa'+(d.alertas.length>1?'s':'')+' presenta'+(d.alertas.length>1?'n':'')+' desviación crítica (&lt;50%).</span>'):'<span style="color:#2e7d32;font-weight:700">Sin desviaciones críticas.</span>');
@@ -9851,8 +9971,9 @@ function renderInformeEjecutivoBlock(opts) {
       +'</div>'
       +'<div style="text-align:center;background:rgba(255,255,255,.1);border-radius:12px;padding:12px 26px">'
         +'<div style="font-size:34px;font-weight:800;color:'+(pct>=80?'#7fdc8e':pct>=50?'#ffc46b':'#ff8a80')+'">'+pct+'%</div>'
-        +'<div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8">Cumplimiento</div>'
-        +'<div style="font-size:11px;opacity:.7;margin-top:2px">'+d.ejec+' / '+d.plan+' act.</div>'
+        +'<div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8">Cumplimiento anual</div>'
+        +'<div style="font-size:11px;opacity:.7;margin-top:2px">'+d.ejecAcum+' / '+d.planAnual+' act. año</div>'
+        +'<div style="font-size:9px;opacity:.55;margin-top:1px">Período: '+d.ejec+' / '+d.plan+' ('+pctPeriodo+'%)</div>'
         +'<button onclick="abrirDetalleInforme(\''+opts.chartPrefix+'\')" '
           +'style="margin-top:8px;padding:5px 14px;border:1px solid rgba(255,255,255,.4);border-radius:16px;background:rgba(255,255,255,.12);color:#fff;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit">'
           +'🔍 Ver análisis detallado</button>'
@@ -10110,13 +10231,24 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
 
   var oficiales = LOGROS_OFICIALES[mesNum]||null;
 
+  var MESES_ABR_ALL = ['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   var cards = GRUPOS.map(function(g) {
-    // ── Cálculo automático (siempre, para ratio ejec/plan) ──
-    var plan=0, ejec=0;
+    // ── Cálculo automático: mes (ratio) + anual acumulado (para el %) ──
+    var plan=0, ejec=0, planAnual=0, ejecAcum=0;
     var logrosAuto=[];
     (PLAN_ROWS_FULL||[]).forEach(function(row, origIdx) {
       if (g.lineas.indexOf(row.linea)<0) return;
       if (!matchResp(row.responsable)) return;
+      // Acumulado anual del grupo: plan 12 meses + ejec hasta el mes del informe
+      for (var _mn=1; _mn<=12; _mn++) {
+        var _mk2 = MESES_ABR_ALL[_mn];
+        var _mm2 = row.meses && row.meses[_mk2];
+        if (!_mm2) continue;
+        planAnual += _mm2.p||0;
+        if (_mn <= mesNum) {
+          ejecAcum += typeof getPlanE==='function' ? getPlanE(origIdx, _mk2, _mm2.e||0) : (_mm2.e||0);
+        }
+      }
       var mm = row.meses && row.meses[mesAbr];
       if (!mm) return;
       var p = mm.p||0;
@@ -10148,7 +10280,8 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
     });
     var seen={}; var logrosAutoU=[];
     logrosAuto.forEach(function(l){ var k=l.toLowerCase().substring(0,60); if(!seen[k]){seen[k]=1;logrosAutoU.push(l);} });
-    var pctAuto = plan>0 ? Math.round(ejec/plan*100) : 0;
+    // % respecto al AÑO: ejecutado acumulado hasta el mes / plan anual del grupo
+    var pctAuto = planAnual>0 ? Math.round(ejecAcum/planAnual*100) : 0;
 
     // ── % SIEMPRE real (ejecución del Plan Estratégico del mes) ──
     // Textos: edición usuario > láminas oficiales (ENE-ABR) > autoconsolidado
@@ -10164,7 +10297,7 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
     } else {
       items = logrosAutoU.slice(0,6); fuente='auto'; label = g.label;
     }
-    return {g:g, label:label, pct:pct, items:items, fuente:fuente, plan:plan, ejec:ejec, pctAuto:pctAuto};
+    return {g:g, label:label, pct:pct, items:items, fuente:fuente, plan:plan, ejec:ejec, planAnual:planAnual, ejecAcum:ejecAcum, pctAuto:pctAuto};
   });
 
   var fuenteBadge = {oficial:'<span title="Logros transcritos del informe oficial" style="font-size:8px;background:#e8f5e9;color:#1b5e20;border-radius:6px;padding:1px 6px">📋 Logros: informe oficial</span>',
@@ -10192,7 +10325,7 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
         +'<div style="font-size:8.5px;color:var(--muted);font-style:italic;line-height:1.35;margin-bottom:8px;min-height:30px" title="'+esc(c.g.reto)+'">'+esc(c.g.reto.substring(0,95))+'…</div>'
         +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">'
           +'<span style="font-size:26px;font-weight:800;color:'+pctCol+'">'+c.pct+'%</span>'
-          +'<span style="font-size:10px;color:var(--muted)">'+c.ejec+'/'+c.plan+' act. del mes</span>' 
+          +'<span style="font-size:10px;color:var(--muted)">Año: '+c.ejecAcum+'/'+c.planAnual+' · Mes: '+c.ejec+'/'+c.plan+'</span>' 
           +fuenteBadge[c.fuente]
         +'</div>'
         +'<div style="background:var(--border);border-radius:3px;height:5px;margin-bottom:12px"><div style="width:'+Math.min(100,c.pct)+'%;background:'+c.g.color+';border-radius:3px;height:5px"></div></div>'
@@ -10210,7 +10343,7 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
       +'</div>';
     }).join('')
     +'</div>'
-    +'<div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:right">% de avance: calculado de la ejecución real del Plan Estratégico · Logros ENE–ABR: informe oficial · MAY en adelante: autoconsolidado · Edita textos con ✎ · '+new Date().toLocaleDateString('es-CO')+'</div>'
+    +'<div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:right">% de avance: ejecutado acumulado del año frente al plan anual 2026 · Logros ENE–ABR: informe oficial · MAY en adelante: autoconsolidado · Edita textos con ✎ · '+new Date().toLocaleDateString('es-CO')+'</div>'
   +'</div>';
 
   cont.innerHTML = html;
@@ -10246,7 +10379,7 @@ function editarLogrosLinea(mesNum, grupoId) {
       +'<div style="display:flex;gap:12px;margin-bottom:12px">'
         +'<div style="flex:1"><label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px">Etiqueta (opcional)</label>'
           +'<input id="le-label" type="text" value="'+esc(curLabel)+'" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;background:var(--bg);color:var(--text)"></div>'
-        +'<div style="font-size:9px;color:var(--muted);max-width:175px;line-height:1.4;padding-bottom:6px;align-self:flex-end">ℹ El % de avance se calcula automáticamente de la ejecución real del Plan Estratégico.</div>'
+        +'<div style="font-size:9px;color:var(--muted);max-width:175px;line-height:1.4;padding-bottom:6px;align-self:flex-end">ℹ El % de avance se calcula automáticamente: ejecutado acumulado del año frente al plan anual.</div>'
       +'</div>'
       +'<label style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:3px">Principales logros (uno por línea)</label>'
       +'<textarea id="le-items" rows="10" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:11px;line-height:1.5;background:var(--bg);color:var(--text);resize:vertical">'+esc(curItems)+'</textarea>'
@@ -10294,7 +10427,8 @@ function abrirDetalleInforme(prefix, tabInicial) {
   var ctx = _IE_LAST[prefix];
   if (!ctx) { if(typeof showAlert==='function') showAlert('Genera primero el informe', 'warn'); return; }
   var d = ctx.d, opts = ctx.opts;
-  var pct = d.plan>0 ? Math.round(d.ejec/d.plan*100) : 0;
+  // % siempre respecto al año
+  var pct = d.planAnual>0 ? Math.round(d.ejecAcum/d.planAnual*100) : (d.plan>0 ? Math.round(d.ejec/d.plan*100) : 0);
 
   var linShort = function(l){var o=LINEAS.find(function(x){return x.rawName===l;});return o?o.short:(typeof _lineaShort==='function'?_lineaShort(l):l);};
   var mesAbrArr = ['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
@@ -10367,12 +10501,12 @@ function abrirDetalleInforme(prefix, tabInicial) {
   var cResumen = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">'
     + _ieKpi(d.plan,'Planeadas','#e3f2fd','#1565c0','ti-target')
     + _ieKpi(d.ejec,'Ejecutadas','#e8f5e9','#2e7d32','ti-circle-check')
-    + _ieKpi(pct+'%','Cumplimiento',(pct>=80?'#e8f5e9':pct>=50?'#fff3e0':'#ffebee'),(pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828'),'ti-percentage')
+    + _ieKpi(pct+'%','Cumplimiento anual',(pct>=80?'#e8f5e9':pct>=50?'#fff3e0':'#ffebee'),(pct>=80?'#2e7d32':pct>=50?'#e65100':'#c62828'),'ti-percentage')
     + _ieKpi(d.alertas.length,'Desviaciones','#ffebee','#c62828','ti-alert-triangle')
     +'</div>'
-    +'<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">Avance por línea de intervención</div>'
-    + Object.keys(d.porLinea).filter(function(l){return d.porLinea[l].plan>0;}).map(function(l){
-      var ld=d.porLinea[l]; var lp=Math.round(ld.ejec/ld.plan*100);
+    +'<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">Avance anual por línea de intervención</div>'
+    + (function(){ var _m=d.porLineaAnual||d.porLinea; return Object.keys(_m).filter(function(l){return _m[l].plan>0;}).map(function(l){
+      var ld=_m[l]; var lp=Math.round(ld.ejec/ld.plan*100);
       var lo=LINEAS.find(function(x){return x.rawName===l;})||{color:'#888'};
       var lc=lp>=80?'#2e7d32':lp>=50?'#e65100':'#c62828';
       return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">'
@@ -10380,7 +10514,7 @@ function abrirDetalleInforme(prefix, tabInicial) {
         +'<div style="flex:1;background:var(--border);border-radius:4px;height:10px"><div style="width:'+Math.min(100,lp)+'%;background:'+(lo.color||'#888')+';border-radius:4px;height:10px"></div></div>'
         +'<div style="width:80px;text-align:right;font-size:11px;flex-shrink:0"><strong style="color:'+lc+'">'+lp+'%</strong> <span style="color:var(--muted);font-size:9px">'+ld.ejec+'/'+ld.plan+'</span></div>'
       +'</div>';
-    }).join('');
+    }).join(''); })();
 
   var cTareas = !tareasDet.length
     ? '<div style="text-align:center;padding:30px;color:var(--text3)"><i class="ti ti-checklist" style="font-size:26px;display:block;margin-bottom:6px"></i>Sin tareas en el período.</div>'
