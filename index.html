@@ -10530,8 +10530,17 @@ function editarLogrosLinea(mesNum, grupoId) {
     return _leRow('le-auto-'+i, esc(txtMostrar), '#c62828', '#fff5f5', '#ffcdd2', yaConf, 'Edita o numera: 1. texto...');
   }).join('');
 
+  // Agregados: SIN checkbox — siempre se guardan todos, solo editables y eliminables
   var agreRows = agregados.map(function(txt,i){
-    return _leRow('le-agr-'+i, esc(typeof txt==='string'?txt:(txt.txt||'')), '#1a1a1a', '#f1f8f1', '#c8e6c9', true, 'Edita este logro...');
+    var t = typeof txt==='string'?txt:(txt.txt||'');
+    return '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:#f1f8f1;border:1px solid #a5d6a7">'
+      +'<span style="flex-shrink:0;font-size:11px;color:#2e7d32">●</span>'
+      +'<input type="text" id="le-agr-'+i+'" value="'+esc(t)+'" placeholder="Edita este logro..." '
+        +'style="flex:1;min-width:0;border:none;border-bottom:1px dashed #a5d6a7;background:transparent;font-size:10px;color:#1a1a1a;line-height:1.5;font-family:inherit;padding:2px 3px;outline:none">'
+      +'<button onclick="if(window.confirm(\'¿Eliminar este logro agregado?\')) this.closest(\'div\').remove();" title="Eliminar" '
+        +'style="flex-shrink:0;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:13px;padding:0 3px;line-height:1" '
+        +'onmouseover="this.style.color=\'#c62828\'" onmouseout="this.style.color=\'#bbb\'">✕</button>'
+    +'</div>';
   }).join('');
 
   var modal=document.createElement('div');
@@ -10553,8 +10562,8 @@ function editarLogrosLinea(mesNum, grupoId) {
 
       // ── SECCIÓN 1: LOGROS AGREGADOS (negro — primeros, editables)
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-        +'<span style="font-size:9px;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:.04em">● Logros agregados por el equipo (negro)</span>'
-        +'<span style="font-size:8px;color:var(--muted)">Se conservan siempre</span>'
+        +'<span style="font-size:9px;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:.04em">● Logros del equipo — siempre visibles</span>'
+        +'<span style="font-size:8px;color:#2e7d32;font-weight:600">✓ Nunca se borran automáticamente</span>'
       +'</div>'
       +'<div id="le-agregados-list" style="margin-bottom:8px">'
         +(agreRows||'<div style="font-size:9px;color:var(--muted);padding:6px 8px;font-style:italic">Sin logros agregados aún. Escribe uno abajo y pulsa + Agregar.</div>')
@@ -10568,8 +10577,8 @@ function editarLogrosLinea(mesNum, grupoId) {
 
       // ── SECCIÓN 2: LOGROS AUTOMÁTICOS (rojo — editables, numerables)
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-        +'<span style="font-size:9px;font-weight:800;color:#c62828;text-transform:uppercase;letter-spacing:.04em">● Logros automáticos del sistema (rojo)</span>'
-        +'<span style="font-size:8px;color:var(--muted)">Edita, numera y marca los que confirmas</span>'
+        +'<span style="font-size:9px;font-weight:800;color:#c62828;text-transform:uppercase;letter-spacing:.04em">● Logros automáticos del sistema</span>'
+        +'<span style="font-size:8px;color:var(--muted)">☑ Marca para agregar al informe · Edita o numera el texto</span>'
       +'</div>'
       +'<div id="le-auto-list" style="max-height:220px;overflow-y:auto;margin-bottom:12px">'
         +(autoRows||'<div style="font-size:9px;color:var(--muted);padding:6px 8px;font-style:italic">Sin logros automáticos para este mes/línea.</div>')
@@ -10612,7 +10621,12 @@ function leAgregarNuevo() {
   var row=document.createElement('div');
   row.id='le-agr-wrap-'+i;
   row.style.cssText='display:flex;align-items:flex-start;gap:6px;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:#f1f8f1;border:1px solid #c8e6c9';
-  row.innerHTML = _leRow('le-agr-'+i, esc(txt), '#1a1a1a', '#f1f8f1', '#c8e6c9', true, 'Edita este logro...');
+  row.innerHTML = '<span style="flex-shrink:0;font-size:11px;color:#2e7d32">●</span>'
+    +'<input type="text" id="le-agr-'+i+'" value="'+esc(txt)+'" placeholder="Edita este logro..." '
+      +'style="flex:1;min-width:0;border:none;border-bottom:1px dashed #a5d6a7;background:transparent;font-size:10px;color:#1a1a1a;line-height:1.5;font-family:inherit;padding:2px 3px;outline:none">'
+    +'<button onclick="if(window.confirm(\'¿Eliminar este logro?\')) this.closest(\'div\').remove();" title="Eliminar" '
+      +'style="flex-shrink:0;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:13px;padding:0 3px;line-height:1" '
+      +'onmouseover="this.style.color=\'#c62828\'" onmouseout="this.style.color=\'#bbb\'">✕</button>';
   list.appendChild(row);
   inp.value='';
   inp.focus();
@@ -10624,29 +10638,32 @@ function guardarLogrosLinea(mesNum, grupoId) {
   var label=((document.getElementById('le-label')||{}).value||'').trim();
   var ctx=window._editLogrosCtx||{};
 
-  // ── Recoger todos los ítems de cada sección ──────────────────────────────────
-  function _leRecoger(listId) {
-    var list = document.getElementById(listId);
-    if (!list) return {confirmados:[], rechazados:0};
-    var confirmados=[], rechazados=0;
-    list.querySelectorAll('input[type="text"]').forEach(function(inp) {
+  // ── AGREGADOS: recoger TODOS los que quedan visibles (no dependen de checkbox)
+  var nuevosAgregados = [];
+  var listAgr = document.getElementById('le-agregados-list');
+  if (listAgr) {
+    listAgr.querySelectorAll('input[type="text"]').forEach(function(inp) {
+      var txt = inp.value.trim();
+      if (txt) nuevosAgregados.push(txt);
+    });
+  }
+
+  // ── AUTOMÁTICOS: solo los que tienen checkbox marcado
+  var nuevosAuto = [], nDesAuto = 0;
+  var listAuto = document.getElementById('le-auto-list');
+  if (listAuto) {
+    listAuto.querySelectorAll('input[type="text"]').forEach(function(inp) {
       var txt = inp.value.trim();
       if (!txt) return;
       var chk = document.getElementById(inp.id+'-chk');
-      if (!chk || chk.checked) confirmados.push(txt);
-      else rechazados++;
+      if (chk && chk.checked) nuevosAuto.push(txt);
+      else nDesAuto++;
     });
-    return {confirmados:confirmados, rechazados:rechazados};
   }
-  var resAgr  = _leRecoger('le-agregados-list');
-  var resAuto = _leRecoger('le-auto-list');
-  var nuevosAgregados = resAgr.confirmados;
-  var nuevosAuto      = resAuto.confirmados;
-  var nDes = resAgr.rechazados + resAuto.rechazados;
 
-  // ── Confirmación si hay ítems desmarcados (que se eliminarán)
-  if (nDes > 0) {
-    var _cmsg = 'Confirmar: quitar ' + nDes + ' logro'+(nDes>1?'s':'')+' desmarcado'+(nDes>1?'s':'')+'. Los automaticos se pueden restaurar. Los agregados del equipo NO se borran.';
+  // Confirmación solo para automáticos desmarcados
+  if (nDesAuto > 0) {
+    var _cmsg = 'Se van a descartar ' + nDesAuto + ' logro'+(nDesAuto>1?'s':'')+' automatico'+(nDesAuto>1?'s':'')+' no marcado'+(nDesAuto>1?'s':'')+'. Los agregados del equipo se conservan siempre.';
     if (!window.confirm(_cmsg)) return;
   }
 
