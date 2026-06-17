@@ -5182,6 +5182,17 @@ function renderPlan(){
 
 // ── VISTA SEMANAL ──────────────────────────────────────────────────────
 function renderSemanal(){
+  // ── Informe de Seguimiento por Línea de Intervención ──────────────────────
+  // Crea contenedor si no existe
+  var _semSeg = document.getElementById('ie-semanal-seguimiento');
+  if (!_semSeg) {
+    _semSeg = document.createElement('div');
+    _semSeg.id = 'ie-semanal-seguimiento';
+    var _contSem = document.getElementById('contenido-semanal');
+    if (_contSem) _contSem.parentNode.insertBefore(_semSeg, _contSem);
+  }
+  try { renderInformeSeguimientoSemanal('ie-semanal-seguimiento'); } catch(e){ console.warn('Seg semanal:', e); }
+
   // Bloque ejecutivo consolidado
   try {
     var _ieM = new Date().getMonth()+1;
@@ -10392,8 +10403,13 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
       items = (ofi.items||[]).map(function(t){ return {txt:(typeof t==='string'?t:(t.txt||'')), manual:false}; });
       fuente = 'oficial';
     } else {
-      // MAY+ sin edición → autoconsolidado en ROJO
-      items = logrosAutoU.slice(0,6).map(function(t){ return {txt:t, manual:false}; });
+      // MAY+ sin edición → autoconsolidado en ROJO (filtrar lista negra)
+      var _listaN = (edit&&edit.listaNegra)||[];
+      var _autoFilt = logrosAutoU.filter(function(t){
+        var tn = t.toLowerCase().substring(0,40);
+        return !_listaN.some(function(n){ return n.toLowerCase().substring(0,40)===tn; });
+      });
+      items = _autoFilt.slice(0,6).map(function(t){ return {txt:t, manual:false}; });
       fuente = 'auto';
     }
 
@@ -10503,8 +10519,14 @@ function editarLogrosLinea(mesNum, grupoId) {
   var autoEditMap = {};
   autoConfPrev.forEach(function(t){ autoEditMap[t.trim().toLowerCase().substring(0,40)] = t; });
 
+  // Filtrar lista negra: no mostrar automáticos que el usuario eliminó permanentemente
+  var listaNegra = (current.listaNegra||[]);
+  var autoItemsFiltrados = autoItems.filter(function(t){
+    var tn = (typeof t==='string'?t:(t.txt||'')).toLowerCase().substring(0,40);
+    return !listaNegra.some(function(n){ return n.toLowerCase().substring(0,40)===tn; });
+  });
   // Si no hay autoItems del sistema (cache aún vacío), mostrar los prevConfirmados como base
-  var autoParaCheck = autoItems.length ? autoItems : autoConfPrev;
+  var autoParaCheck = autoItemsFiltrados.length ? autoItemsFiltrados : (autoItems.length ? [] : autoConfPrev);
 
   // ── Helper de fila reutilizable ──────────────────────────────────────────────
   function _leRow(id, txt, color, bg, border, checked, placeholder) {
@@ -10527,7 +10549,34 @@ function editarLogrosLinea(mesNum, grupoId) {
     var txtNorm = txt.trim().toLowerCase().substring(0,40);
     var yaConf = !!autoEditMap[txtNorm];
     var txtMostrar = yaConf ? autoEditMap[txtNorm] : txt;
-    return _leRow('le-auto-'+i, esc(txtMostrar), '#c62828', '#fff5f5', '#ffcdd2', yaConf, 'Edita o numera: 1. texto...');
+    var colorInicial = yaConf ? '#1a1a1a' : '#c62828';
+    var bgInicial    = yaConf ? '#f8fff8' : '#fff5f5';
+    return '<div id="le-auto-row-'+i+'" style="display:flex;align-items:center;gap:6px;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:'+bgInicial+';border:1px solid #ffcdd2;transition:background .2s">'
+      // Checkbox: al marcar → negro; al desmarcar → rojo
+      +'<input type="checkbox" id="le-chk-'+i+'" '+(yaConf?'checked':'')+' '
+        +'title="'+(yaConf?'Confirmado — desmarcar para quitar del informe':'Marcar para agregar al informe en negro')+'" '
+        +'style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:#2e7d32" '
+        +'onchange="(function(chk,i){'
+          +'var inp=document.getElementById(\'le-auto-\'+i);'
+          +'var row=document.getElementById(\'le-auto-row-\'+i);'
+          +'if(chk.checked){'
+            +'inp.style.color=\'#1a1a1a\';'
+            +'row.style.background=\'#f8fff8\';'
+            +'row.style.border=\'1px solid #a5d6a7\';'
+          +'}else{'
+            +'inp.style.color=\'#c62828\';'
+            +'row.style.background=\'#fff5f5\';'
+            +'row.style.border=\'1px solid #ffcdd2\';'
+          +'}'
+        +'})(this,'+i+')">'
+      // Campo editable — color inicial según estado
+      +'<input type="text" id="le-auto-'+i+'" value="'+esc(txtMostrar)+'" placeholder="Edita o numera: 1. texto..." '
+        +'style="flex:1;min-width:0;border:none;border-bottom:1px dashed #e0e0e0;background:transparent;font-size:10px;color:'+colorInicial+';line-height:1.5;font-family:inherit;padding:2px 3px;outline:none;transition:color .2s">'
+      // Botón eliminar permanentemente
+      +'<button onclick="this.closest(\'div\').remove();" title="Eliminar este logro automático del informe (no reaparecerá)" '
+        +'style="flex-shrink:0;border:none;background:transparent;color:#ccc;cursor:pointer;font-size:13px;padding:0 3px;line-height:1" '
+        +'onmouseover="this.style.color=\'#c62828\'" onmouseout="this.style.color=\'#ccc\'">✕</button>'
+    +'</div>';
   }).join('');
 
   // Agregados: SIN checkbox — siempre se guardan todos, solo editables y eliminables
@@ -10593,7 +10642,8 @@ function editarLogrosLinea(mesNum, grupoId) {
       // Botones
       +'<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:12px">'
         +'<button onclick="restaurarLogrosLinea('+mesNum+',\''+grupoId+'\')" '
-          +'style="padding:7px 14px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit">↺ Restaurar automáticos</button>'
+          +'title="Devuelve los automáticos al texto original. Los logros del equipo NO se borran." '
+          +'style="padding:7px 14px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit">↺ Restablecer automáticos</button>'
         +'<div style="display:flex;gap:8px">'
           +'<button onclick="document.getElementById(\''+pid+'\').remove()" '
             +'style="padding:7px 16px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit">Cancelar</button>'
@@ -10605,7 +10655,7 @@ function editarLogrosLinea(mesNum, grupoId) {
   +'</div>';
   document.body.appendChild(modal);
   modal.addEventListener('click',function(e){if(e.target===modal) modal.remove();});
-  window._editLogrosCtx={mesNum:mesNum,grupoId:grupoId,autoCount:autoParaCheck.length,agregCount:agregados.length};
+  window._editLogrosCtx={mesNum:mesNum,grupoId:grupoId,autoCount:autoParaCheck.length,agregCount:agregados.length,autoOrigTexts:autoParaCheck.slice()};
 }
 
 function leAgregarNuevo() {
@@ -10661,11 +10711,27 @@ function guardarLogrosLinea(mesNum, grupoId) {
     });
   }
 
-  // Confirmación solo para automáticos desmarcados
-  if (nDesAuto > 0) {
-    var _cmsg = 'Se van a descartar ' + nDesAuto + ' logro'+(nDesAuto>1?'s':'')+' automatico'+(nDesAuto>1?'s':'')+' no marcado'+(nDesAuto>1?'s':'')+'. Los agregados del equipo se conservan siempre.';
-    if (!window.confirm(_cmsg)) return;
+  // Autos no marcados se descartan silenciosamente (el usuario decidió no confirmarlos)
+  // Los agregados del equipo se conservan siempre — no requieren confirmación
+
+  // ── Calcular lista negra: automáticos que el usuario eliminó (✕)
+  //    = autoItems del sistema que ya NO están en el DOM ni marcados
+  var autoTextsEnDOM = [];
+  if(listAuto) {
+    listAuto.querySelectorAll('input[type="text"]').forEach(function(inp){
+      var t=inp.value.trim(); if(t) autoTextsEnDOM.push(t.toLowerCase().substring(0,50));
+    });
   }
+  var autoOrigTexts = (window._editLogrosCtx&&window._editLogrosCtx.autoOrigTexts)||[];
+  var listaNegraAuto = autoOrigTexts.filter(function(orig){
+    var origN = orig.toLowerCase().substring(0,50);
+    return !autoTextsEnDOM.some(function(d){ return d.substring(0,40)===origN.substring(0,40); });
+  });
+  // Mantener lista negra previa + nuevas eliminaciones
+  var listaNegraPrev = (prev.listaNegra||[]);
+  listaNegraAuto = listaNegraAuto.concat(listaNegraPrev.filter(function(p){
+    return !listaNegraAuto.some(function(n){ return n.substring(0,40)===p.substring(0,40); });
+  }));
 
   // Orden: AGREGADOS primero, luego AUTOMÁTICOS CONFIRMADOS
   var manualItems=nuevosAgregados.concat(nuevosAuto);
@@ -10673,7 +10739,8 @@ function guardarLogrosLinea(mesNum, grupoId) {
   hist.push({ts:new Date().toLocaleString('es-CO'), n:manualItems.length});
   _logrosEdits[editKey]={
     manualItems:manualItems,
-    agregados:nuevosAgregados,       // guardados separados para restaurarLogrosLinea
+    agregados:nuevosAgregados,
+    listaNegra:listaNegraAuto,      // automáticos eliminados: no reaparecerán
     label:label||prev.label||undefined,
     _hist:hist
   };
@@ -10685,29 +10752,34 @@ function guardarLogrosLinea(mesNum, grupoId) {
 }
 
 function restaurarLogrosLinea(mesNum, grupoId) {
+  // Restaurar automáticos = quitar confirmaciones de autos, mantener agregados intactos
   var editKey=mesNum+'_'+grupoId;
   var prev=_logrosEdits[editKey]||{};
-  // CONSERVAR los agregados por el equipo — solo restaurar los automáticos
+  // Los agregados del equipo se conservan SIEMPRE, sin excepción
   var agregadosPrev=(prev.agregados||[]).slice();
+  // Guardar solo los agregados (los autos vuelven a sin confirmar)
   if(agregadosPrev.length){
-    // Mantener solo los agregados; el resto (automáticos) vuelve al estado del sistema
     _logrosEdits[editKey]={
-      manualItems:agregadosPrev,
+      manualItems:agregadosPrev.slice(),  // solo agregados, sin autos confirmados
       agregados:agregadosPrev,
+      listaNegra:[],                      // restablecer = volver a ver todos los automáticos
       label:prev.label||undefined,
-      _hist:(prev._hist||[]).concat([{ts:new Date().toLocaleString('es-CO'),n:agregadosPrev.length,nota:'Restaurado (se conservan '+agregadosPrev.length+' logro(s) del equipo)'}])
+      _hist:(prev._hist||[]).concat([{ts:new Date().toLocaleString('es-CO'),n:agregadosPrev.length,nota:'Automáticos restablecidos al original'}])
     };
   } else {
-    delete _logrosEdits[editKey];
+    // Sin agregados: limpiar confirmaciones y lista negra
+    _logrosEdits[editKey]={manualItems:[],agregados:[],listaNegra:[],label:prev.label||undefined,_hist:prev._hist||[]};
   }
   _logrosSave();
+  // Reabrir el modal con el estado actualizado
   var m=document.getElementById('logros-edit-modal'); if(m) m.remove();
   var lCtx=window._logrosCtx||{};
   if(lCtx.containerId) renderLogrosPorLinea(lCtx.mesNum,lCtx.containerId,lCtx.fResp);
-  var msg=agregadosPrev.length
-    ?('↺ Automáticos restaurados. Se conservaron '+agregadosPrev.length+' logro(s) del equipo.')
-    :'↺ Restaurado al estado automático';
-  if(typeof showAlert==='function') showAlert(msg,'info');
+  // Reabrir el modal para que el equipo vea los automáticos sin confirmar
+  setTimeout(function(){
+    if(window._logrosCtx) editarLogrosLinea(window._logrosCtx.mesNum, grupoId);
+  }, 200);
+  if(typeof showAlert==='function') showAlert('↺ Automáticos restablecidos al texto original. Los logros del equipo se conservaron.','info');
 }
 
 
@@ -10888,6 +10960,395 @@ function ieDetTab(tab) {
     p.style.display = p.id==='ie-det-pane-'+tab?'block':'none';
   });
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INFORME SEMANAL DE SEGUIMIENTO — por línea de intervención y tipo de gestión
+//  Visualiza: pendientes (todos los anteriores) · ejecutado · programado · visitas
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function renderInformeSeguimientoSemanal(containerId) {
+  var cont = document.getElementById(containerId);
+  if (!cont) return;
+
+  var gR    = window._globalResp || '';
+  var today = new Date().toISOString().slice(0,10);
+  var mesAbr = ['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  // Semana del selector del informe
+  var semSel = document.getElementById('f-sem-semana');
+  var semNum = semSel&&semSel.value ? parseInt(semSel.value)
+    : (typeof getISOWeek==='function' ? getISOWeek(new Date()) : 24);
+
+  // ── Filtro de responsable ─────────────────────────────────────────────────
+  // Con "Todos" se ven todos; con SL/AV/JH solo sus actividades
+  var matchResp = function(r) {
+    if (!gR) return true;
+    var s=(r||'').toLowerCase();
+    return s.includes(gR.toLowerCase().split(' ')[0])||
+      (gR==='Sandra L'&&(s.includes('sandra')||s.includes('slg')))||
+      (gR==='AV'&&(s.includes('andres')||s.includes('villamil')))||
+      (gR==='JH'&&(s.includes('jeison')||s.includes('hurtado')));
+  };
+
+  // ── Label de semana ───────────────────────────────────────────────────────
+  var semLabel='S'+semNum, mesLabel='';
+  try {
+    var _wr=getWeekRange(2026,semNum);
+    var _f=function(d){var p=d.toISOString().slice(0,10).split('-');return p[2]+'/'+p[1];};
+    semLabel='S'+semNum+' · '+_f(_wr.start)+'–'+_f(_wr.end);
+    // Mes predominante
+    var _m=_wr.start.getMonth()+1;
+    mesLabel=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
+              'Septiembre','Octubre','Noviembre','Diciembre'][_m]||'';
+  } catch(e){}
+  var fechaGen=new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'});
+
+  // ── Definición de los 5 grupos ejecutivos (idénticos al mensual) ─────────
+  var GRUPOS=[
+    {id:'fidelizacion',    label:'Fidelización',    icon:'ti-heart-handshake', color:'#1b5e20',
+     reto:'Fortalecemos la marca empleadora y la experiencia del colaborador a través de comunicación, escucha y beneficios.',
+     lineas:['Experiencia-Colaborador_y_Marca-Empleadora'],
+     resp:'Sandra L'},
+    {id:'analitica',       label:'Analítica',        icon:'ti-chart-dots',      color:'#1565c0',
+     reto:'Transformamos datos en decisiones estratégicas, integrando métricas, análisis y benchmarking.',
+     lineas:['Analitica_de_personas'],
+     resp:'JH'},
+    {id:'proyectos',       label:'Proyectos',        icon:'ti-rocket',          color:'#6a1b9a',
+     reto:'Diseñamos e implementamos soluciones alineadas al propósito, que generan resultados e impacto.',
+     lineas:['Proyectos'],
+     resp:'JH'},
+    {id:'alianzas',        label:'Alianzas',         icon:'ti-users-group',     color:'#e65100',
+     reto:'Construimos alianzas estratégicas que conectan capacidades y recursos para generar valor compartido.',
+     lineas:['Alianzas_y_gestión_de_recursos'],
+     resp:'Sandra L'},
+    {id:'fortalecimiento', label:'Fortalecimiento',  icon:'ti-school',          color:'#00695c',
+     reto:'Desarrollamos capacidades para fortalecer competencias en líderes y equipos mediante formación.',
+     lineas:['Fortalecimiento_de_líderes_y_equipos','Gestión_administrativa_y_operativa','Gestión_de_conocimiento'],
+     resp:'Sandra L'},
+  ];
+
+  // Filtrar grupos según Vista de
+  var gruposFilt = !gR ? GRUPOS : GRUPOS.filter(function(g){
+    if (gR==='Sandra L') return ['fidelizacion','alianzas','fortalecimiento'].indexOf(g.id)>=0;
+    if (gR==='AV')       return ['fidelizacion','fortalecimiento'].indexOf(g.id)>=0;
+    if (gR==='JH')       return ['analitica','proyectos','fortalecimiento'].indexOf(g.id)>=0;
+    return true;
+  });
+  // "Todos" muestra los 5 grupos
+  if (!gR) gruposFilt = GRUPOS;
+
+  // ── Consolidar datos por grupo ────────────────────────────────────────────
+  var cards = gruposFilt.map(function(g) {
+    var ejec=[], pend=[], prog=[];
+    var planAnual=0, ejecAcum=0, planSem=0, ejecSem=0;
+
+    (PLAN_ROWS_FULL||[]).forEach(function(row,origIdx){
+      if (g.lineas.indexOf(row.linea)<0) return;
+      if (!matchResp(row.responsable)) return;
+
+      // Acumulado anual
+      for(var mn=1;mn<=12;mn++){
+        var mk2=mesAbr[mn],mm2=row.meses&&row.meses[mk2];if(!mm2)continue;
+        planAnual+=mm2.p||0;
+        Object.keys(mm2.sems||{}).forEach(function(ss){
+          if(parseInt(ss)<=semNum)
+            ejecAcum+=typeof getPlanESem==='function'?getPlanESem(origIdx,mk2,parseInt(ss),mm2.sems[ss].e||0):(mm2.sems[ss].e||0);
+        });
+      }
+
+      // Por semana
+      Object.keys(row.meses||{}).forEach(function(mk){
+        var mm=row.meses[mk];if(!mm)return;
+        Object.keys(mm.sems||{}).forEach(function(ss){
+          var sv=mm.sems[ss],sn=parseInt(ss);
+          var p=sv.p||0;
+          var e=typeof getPlanESem==='function'?getPlanESem(origIdx,mk,sn,sv.e||0):(sv.e||0);
+          var hist=row._histSem&&row._histSem[mk+'_S'+sn];
+          var desc=(hist&&hist.desc)?hist.desc.trim():'';
+          var obs=(hist&&hist.obs)?hist.obs.trim():'';
+          var acto=row.agrupador?row.agrupador.split('\n')[0]:row.tipo;
+          var item={tipo:row.tipo,acto:acto,desc:desc,obs:obs,p:p,e:e,sn:sn,resp:row.responsable};
+
+          if(sn===semNum){
+            planSem+=p;ejecSem+=e;
+            if(e>0) ejec.push(item);
+            else if(p>0) pend.push({...item,cur:true,sLabel:'esta semana'});
+          } else if(sn<semNum&&p>0&&e<p){
+            pend.push({...item,cur:false,sLabel:'S'+sn});
+          } else if(sn>semNum&&p>0){
+            prog.push({...item,sLabel:'S'+sn});
+          }
+        });
+      });
+    });
+
+    // Tareas
+    var tEjec=[],tPend=[],tProg=[];
+    (typeof tareas!=='undefined'?tareas:[]).forEach(function(t){
+      if(g.lineas.indexOf(t.linea)<0)return;
+      if(!matchResp(t.responsable))return;
+      var comp=t._reprog_fecha||t.compromiso||'';
+      var closed=['cerrada','ejecutada','completado'].includes((t.estado||'').toLowerCase());
+      var semT=comp&&typeof getISOWeek==='function'?getISOWeek(new Date(comp)):0;
+      var txt=(t.desc||t.descripcion||'').trim();
+      if(closed&&semT===semNum) tEjec.push({txt:txt,resp:t.responsable||''});
+      else if(!closed&&(semT===semNum||(comp&&comp<today))) tPend.push({txt:txt,comp:comp,isVenc:!!(comp&&comp<today)});
+      else if(!closed&&semT>semNum) tProg.push({txt:txt,sLabel:'S'+semT});
+    });
+
+    // Deduplicar
+    var seen={};
+    ejec=ejec.filter(function(x){var k=(x.desc||x.acto).substring(0,40);return seen[k]?false:(seen[k]=1,true);});
+    seen={};
+    pend=pend.filter(function(x){var k=(x.acto||'').substring(0,40);return seen[k]?false:(seen[k]=1,true);});
+
+    var pct=planAnual>0?Math.round(ejecAcum/planAnual*100):0;
+    var pctSem=planSem>0?Math.round(ejecSem/planSem*100):0;
+    return {g:g,pct:pct,pctSem:pctSem,planAnual:planAnual,ejecAcum:ejecAcum,
+            planSem:planSem,ejecSem:ejecSem,
+            ejec:ejec,pend:pend,prog:prog,tEjec:tEjec,tPend:tPend,tProg:tProg};
+  });
+
+  // Visitas de la semana
+  var vEjec=[],vProg=[];
+  (typeof acompData!=='undefined'?acompData:[]).forEach(function(v){
+    if(!matchResp(v.responsable))return;
+    var semV=v.fecha&&typeof getISOWeek==='function'?getISOWeek(new Date(v.fecha)):0;
+    var done=(v.estado||'').toLowerCase()==='completado';
+    if(semV===semNum&&done) vEjec.push(v);
+    else if(semV>=semNum&&!done) vProg.push(v);
+  });
+
+  // Totales globales
+  var gEjec=cards.reduce(function(s,c){return s+c.ejec.length+c.tEjec.length;},0);
+  var gPend=cards.reduce(function(s,c){return s+c.pend.length+c.tPend.length;},0);
+  var gProg=cards.reduce(function(s,c){return s+c.prog.length+c.tProg.length;},0);
+
+  // ── Helpers de render ────────────────────────────────────────────────────
+  function pill(n,bg,fg,icon){
+    return n?'<span style="background:'+bg+';color:'+fg+';font-size:8px;font-weight:700;border-radius:10px;padding:2px 8px">'+icon+' '+n+'</span>':'';
+  }
+  function items(arr,col,maxLen,getLabel){
+    if(!arr.length) return '<span style="font-size:9px;color:var(--muted)">—</span>';
+    return arr.map(function(it){
+      var txt=(it.desc||it.acto||it.txt||'').substring(0,maxLen||100);
+      var lbl=getLabel?getLabel(it):'';
+      return '<div style="display:flex;gap:5px;margin-bottom:5px;align-items:flex-start">'
+        +'<span style="color:'+col+';flex-shrink:0;font-size:11px;line-height:1.3">●</span>'
+        +'<span style="font-size:9.5px;color:'+col+';line-height:1.4">'+esc(txt)
+          +(lbl?'<span style="font-size:8px;background:'+col+'22;border-radius:3px;padding:0 4px;margin-left:3px">'+lbl+'</span>':'')
+          +(it.obs?'<div style="font-size:8px;color:'+(col==='#2e7d32'?'#388e3c':'#777')+';margin-top:1px">'+esc(it.obs.substring(0,70))+'</div>':'')
+          +(it.isVenc?'<span style="font-size:8px;color:#ef5350;margin-left:3px">⚠ vencida</span>':'')
+        +'</span>'
+      +'</div>';
+    }).join('');
+  }
+
+  // ── BUILD HTML ────────────────────────────────────────────────────────────
+  var ncols=gruposFilt.length;
+  var colGrid='repeat('+ncols+',1fr)';
+
+  var html=''
+  // ── Banner ejecutivo superior ──
+  +'<div style="background:linear-gradient(135deg,#1b2a4a 0%,#2e4a7a 100%);border-radius:12px;padding:16px 22px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">'
+    +'<div>'
+      +'<div style="color:#fff;font-size:16px;font-weight:800;letter-spacing:-.01em">Seguimiento Semanal · '+semLabel+'</div>'
+      +'<div style="color:rgba(255,255,255,.65);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-top:2px">Relaciones Interinstitucionales · Plan Estratégico 2026'+(gR?' · '+gR:'')+'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +pill(gEjec,'rgba(46,125,50,.5)','#a5d6a7','✓')+' '
+      +pill(gPend,'rgba(198,40,40,.5)','#ef9a9a','⚠')+' '
+      +pill(gProg,'rgba(21,101,192,.5)','#90caf9','→')
+      +(vEjec.length?pill(vEjec.length,'rgba(230,81,0,.5)','#ffcc80','🤝'):'')
+    +'</div>'
+  +'</div>'
+
+  // ── Resumen ejecutivo horizontal (KPIs) ──────────────────────────────────
+  +'<div style="display:flex;flex-wrap:nowrap;gap:8px;margin-bottom:14px;overflow-x:auto">'
+    // KPI 1 — Cumplimiento anual global
+    +(function(){
+      var tp=cards.reduce(function(s,c){return s+c.planAnual;},0);
+      var te=cards.reduce(function(s,c){return s+c.ejecAcum;},0);
+      var p=tp>0?Math.round(te/tp*100):0;
+      var col=p>=80?'#2e7d32':p>=40?'#e65100':'#c62828';
+      var bg=p>=80?'#e8f5e9':p>=40?'#fff3e0':'#ffebee';
+      return '<div style="flex:1;min-width:110px;background:'+bg+';border-radius:10px;padding:12px 14px;border:1px solid '+col+'22">'
+        +'<div style="font-size:28px;font-weight:900;color:'+col+';line-height:1">'+p+'%</div>'
+        +'<div style="font-size:8px;font-weight:700;color:'+col+';text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Cumplimiento anual</div>'
+        +'<div style="font-size:8px;color:'+col+';opacity:.75;margin-top:1px">'+te+' / '+tp+' act.</div>'
+      +'</div>';
+    })()
+    // KPI 2 — Semana actual
+    +(function(){
+      var sp=cards.reduce(function(s,c){return s+c.planSem;},0);
+      var se=cards.reduce(function(s,c){return s+c.ejecSem;},0);
+      var ps=sp>0?Math.round(se/sp*100):0;
+      var col=ps>=80?'#2e7d32':ps>=40?'#e65100':'#c62828';
+      return '<div style="flex:1;min-width:110px;background:var(--surface2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">'
+        +'<div style="font-size:28px;font-weight:900;color:'+col+';line-height:1">'+ps+'%</div>'
+        +'<div style="font-size:8px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Avance semana</div>'
+        +'<div style="font-size:8px;color:var(--muted);margin-top:1px">'+se+' / '+sp+' planeadas</div>'
+      +'</div>';
+    })()
+    // KPI 3 — Ejecutado esta semana
+    +(function(){
+      var n=cards.reduce(function(s,c){return s+c.ejec.length+c.tEjec.length;},0);
+      return '<div style="flex:1;min-width:110px;background:#e8f5e9;border-radius:10px;padding:12px 14px;border:1px solid #2e7d3222">'
+        +'<div style="font-size:28px;font-weight:900;color:#2e7d32;line-height:1">'+n+'</div>'
+        +'<div style="font-size:8px;font-weight:700;color:#2e7d32;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Ejecutado</div>'
+        +'<div style="font-size:8px;color:#388e3c;opacity:.8;margin-top:1px">Esta semana</div>'
+      +'</div>';
+    })()
+    // KPI 4 — Pendientes
+    +(function(){
+      var n=cards.reduce(function(s,c){return s+c.pend.length+c.tPend.length;},0);
+      var col=n>0?'#c62828':'#2e7d32';
+      var bg=n>0?'#ffebee':'#e8f5e9';
+      return '<div style="flex:1;min-width:110px;background:'+bg+';border-radius:10px;padding:12px 14px;border:1px solid '+col+'22">'
+        +'<div style="font-size:28px;font-weight:900;color:'+col+';line-height:1">'+n+'</div>'
+        +'<div style="font-size:8px;font-weight:700;color:'+col+';text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Pendientes</div>'
+        +'<div style="font-size:8px;color:'+col+';opacity:.75;margin-top:1px">Todos los períodos</div>'
+      +'</div>';
+    })()
+    // KPI 5 — Programado próximas semanas
+    +(function(){
+      var n=cards.reduce(function(s,c){return s+c.prog.length+c.tProg.length;},0);
+      return '<div style="flex:1;min-width:110px;background:#e3f2fd;border-radius:10px;padding:12px 14px;border:1px solid #1565c022">'
+        +'<div style="font-size:28px;font-weight:900;color:#1565c0;line-height:1">'+n+'</div>'
+        +'<div style="font-size:8px;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Programado</div>'
+        +'<div style="font-size:8px;color:#1565c0;opacity:.75;margin-top:1px">Próximas semanas</div>'
+      +'</div>';
+    })()
+    // KPI 6 — Visitas
+    +(function(){
+      var n=vEjec.length+vProg.length;
+      if(!n) return '';
+      return '<div style="flex:1;min-width:110px;background:#fff3e0;border-radius:10px;padding:12px 14px;border:1px solid #e6510022">'
+        +'<div style="font-size:28px;font-weight:900;color:#e65100;line-height:1">'+n+'</div>'
+        +'<div style="font-size:8px;font-weight:700;color:#e65100;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Visitas/Eventos</div>'
+        +'<div style="font-size:8px;color:#e65100;opacity:.75;margin-top:1px">'+vEjec.length+' real. · '+vProg.length+' prog.</div>'
+      +'</div>';
+    })()
+  +'</div>'
+
+  // ── Grid de 5 tarjetas (o las que correspondan al filtro) ──
+  +'<div style="display:grid;grid-template-columns:'+colGrid+';gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">'
+
+  +cards.map(function(c,ci){
+    var col=c.g.color;
+    var pctCol=c.pct>=80?'#2e7d32':c.pct>=40?'#e65100':'#c62828';
+    var bordR=ci<cards.length-1?'border-right:1px solid var(--border);':'';
+
+    var totalE=c.ejec.length+c.tEjec.length;
+    var totalP=c.pend.length+c.tPend.length;
+    var totalG=c.prog.length+c.tProg.length;
+
+    // Badge de estado de la semana
+    var badge=totalE>0
+      ?'<span style="font-size:8px;background:#e8f5e9;color:#2e7d32;border-radius:6px;padding:1px 6px">✓ '+totalE+' ejec.</span>'
+      :(totalP>0
+        ?'<span style="font-size:8px;background:#ffebee;color:#c62828;border-radius:6px;padding:1px 6px">⚠ '+totalP+' pend.</span>'
+        :'<span style="font-size:8px;background:#e3f2fd;color:#1565c0;border-radius:6px;padding:1px 6px">→ '+totalG+' prog.</span>');
+
+    return '<div style="background:var(--bg);'+bordR+'padding:14px 15px;display:flex;flex-direction:column;min-height:280px">'
+      // Header — ícono + nombre + badge
+      +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:'+col+'18;display:flex;align-items:center;justify-content:center;flex-shrink:0">'
+          +'<i class="ti '+c.g.icon+'" style="font-size:14px;color:'+col+'"></i></div>'
+        +'<span style="font-size:11px;font-weight:800;color:'+col+';flex:1">'+esc(c.g.label)+'</span>'
+        +badge
+      +'</div>'
+      // Reto en cursiva
+      +'<div style="font-size:8px;color:var(--muted);font-style:italic;line-height:1.35;margin-bottom:7px;min-height:24px">'+esc(c.g.reto.substring(0,90))+'…</div>'
+      // % anual grande + semana chico
+      +'<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:3px">'
+        +'<span style="font-size:28px;font-weight:900;color:'+pctCol+';line-height:1">'+c.pct+'%</span>'
+        +'<div style="font-size:8.5px;color:var(--muted);line-height:1.5">'
+          +'Año: '+c.ejecAcum+'/'+c.planAnual+'<br>'
+          +'Sem: '+c.ejecSem+'/'+c.planSem+(c.planSem>0?' ('+c.pctSem+'%)':'')
+        +'</div>'
+      +'</div>'
+      // Barra de progreso
+      +'<div style="background:var(--border);border-radius:3px;height:4px;margin-bottom:11px">'
+        +'<div style="width:'+Math.min(100,c.pct)+'%;background:'+col+';border-radius:3px;height:4px"></div></div>'
+      // ── Items ejecutados esta semana ──
+      +(c.ejec.length||c.tEjec.length?''
+        +'<div style="font-size:8px;font-weight:700;color:#2e7d32;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✓ Ejecutado</div>'
+        +items(c.ejec,'#2e7d32',100,null)
+        +items(c.tEjec,'#2e7d32',100,null)
+        :'')
+      // ── Items pendientes ──
+      +(c.pend.length||c.tPend.length?''
+        +'<div style="font-size:8px;font-weight:700;color:#c62828;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;'+(c.ejec.length?'margin-top:8px':'')+'">⚠ Pendiente</div>'
+        +items(c.pend,'#c62828',100,function(it){return it.cur?'':it.sLabel;})
+        +items(c.tPend,'#c62828',100,null)
+        :'')
+      // ── Items programados (hasta 3) ──
+      +(c.prog.length||c.tProg.length?''
+        +'<div style="font-size:8px;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;'+(c.ejec.length||c.pend.length?'margin-top:8px':'')+'">→ Próximas semanas</div>'
+        +items(c.prog.slice(0,3),'#1565c0',90,function(it){return it.sLabel;})
+        +items(c.tProg.slice(0,2),'#1565c0',90,function(it){return it.sLabel;})
+        :'')
+      // Sin actividad
+      +(!c.ejec.length&&!c.pend.length&&!c.prog.length&&!c.tEjec.length&&!c.tPend.length
+        ?'<div style="font-size:9px;color:var(--muted);font-style:italic;margin-top:4px">Sin actividades esta semana.<br><span style="font-size:8px">Registra en Ejecución del Plan.</span></div>'
+        :'')
+    +'</div>';
+  }).join('')
+  +'</div>'
+
+  // ── Tabla de visitas/eventos ───────────────────────────────────────────────
+  +(vEjec.length||vProg.length
+    ?'<div style="border:1px solid #ffe0b2;border-radius:10px;overflow:hidden;margin-bottom:12px">'
+      +'<div style="background:linear-gradient(90deg,#e65100,#f57c00);padding:9px 16px;display:flex;justify-content:space-between;align-items:center">'
+        +'<span style="color:#fff;font-size:11px;font-weight:800">🤝 Visitas y Eventos de la semana</span>'
+        +'<div style="display:flex;gap:6px">'
+          +pill(vEjec.length,'rgba(255,255,255,.25)','#fff','✓ Realizadas')
+          +pill(vProg.length,'rgba(255,255,255,.15)','#ffe','→ Programadas')
+        +'</div>'
+      +'</div>'
+      +'<table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:#fff3e0">'
+          +'<th style="padding:6px 10px;font-size:8.5px;font-weight:700;color:#bf360c;text-align:left;border-bottom:1px solid #ffe0b2">Estado</th>'
+          +'<th style="padding:6px 10px;font-size:8.5px;font-weight:700;color:#555;text-align:left;border-bottom:1px solid #ffe0b2">Empresa</th>'
+          +'<th style="padding:6px 10px;font-size:8.5px;font-weight:700;color:#555;text-align:left;border-bottom:1px solid #ffe0b2">Tipo</th>'
+          +'<th style="padding:6px 10px;font-size:8.5px;font-weight:700;color:#555;text-align:left;border-bottom:1px solid #ffe0b2">Fecha</th>'
+          +'<th style="padding:6px 10px;font-size:8.5px;font-weight:700;color:#555;text-align:left;border-bottom:1px solid #ffe0b2">Responsable</th>'
+        +'</tr></thead><tbody>'
+        +vEjec.map(function(v,i){
+          return '<tr style="border-bottom:1px solid #fff3e0;background:'+(i%2?'#fff8f3':'var(--bg)')+'">'
+            +'<td style="padding:5px 10px"><span style="font-size:8px;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-weight:700">✓ Realizada</span></td>'
+            +'<td style="padding:5px 10px;font-size:9px;font-weight:600;color:var(--text)">'+esc(v.empresa||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.tipo||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.fecha||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.responsable||'')+'</td>'
+          +'</tr>';
+        }).join('')
+        +vProg.map(function(v,i){
+          return '<tr style="border-bottom:1px solid #fff3e0;background:'+(i%2?'#f3f8ff':'var(--surface)')+'">'
+            +'<td style="padding:5px 10px"><span style="font-size:8px;background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 6px;font-weight:700">→ Programada</span></td>'
+            +'<td style="padding:5px 10px;font-size:9px;font-weight:600;color:var(--text)">'+esc(v.empresa||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.tipo||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.fecha||'')+'</td>'
+            +'<td style="padding:5px 10px;font-size:9px;color:var(--muted)">'+esc(v.responsable||'')+'</td>'
+          +'</tr>';
+        }).join('')
+        +'</tbody></table>'
+    +'</div>':'')
+
+  // Pie
+  +'<div style="font-size:8.5px;color:var(--muted);text-align:right">'
+    +'Sem: ejec. de la semana · Año: acumulado 2026 · '
+    +'<b style="color:#2e7d32">●</b> Ejecutado &nbsp;'
+    +'<b style="color:#c62828">●</b> Pendiente &nbsp;'
+    +'<b style="color:#1565c0">●</b> Programado &nbsp;· '+fechaGen
+  +'</div>';
+
+  cont.innerHTML = html;
+}
+
+
 
 
 // ── CSS para tab content Gestión ──────────────────────────────────────────────
