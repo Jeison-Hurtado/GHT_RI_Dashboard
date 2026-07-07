@@ -1065,7 +1065,7 @@ tr:hover td{background:var(--bg)}
     <!-- Charts row -->
     <div class="acc-dashboard">
       <div class="acc-card"><div class="acc-card-hdr"><div class="acc-card-icon">📋</div><div class="acc-card-title">Programación</div></div><div class="chart-container"><canvas id="chProg"></canvas><div class="donut-center"><div class="donut-value" id="a-prog-pct">0%</div><div class="donut-label">Programadas</div></div></div><div class="stat-item"><div class="stat-color" style="background:var(--blue)"></div><div class="stat-text"><span>Programadas</span><span id="a-prog-n">—</span></div></div><div class="stat-item"><div class="stat-color" style="background:#bdbdbd"></div><div class="stat-text"><span>Sin programar</span><span id="a-sinprog-n">—</span></div></div><div class="acc-objective">📅 Objetivo: 100% programados</div></div>
-      <div class="acc-card"><div class="acc-card-hdr"><div class="acc-card-icon">✓</div><div class="acc-card-title">Cumplimiento</div></div><div class="chart-container"><canvas id="chCump"></canvas><div class="donut-center"><div class="donut-value" id="a-comp-pct">0%</div><div class="donut-label">Completadas</div></div></div><div class="stat-item"><div class="stat-color" style="background:var(--green)"></div><div class="stat-text"><span>Completado</span><span id="a-comp-n">—</span></div></div><div class="stat-item"><div class="stat-color" style="background:#fbc02d"></div><div class="stat-text"><span>Pendiente</span><span id="a-pend-n">—</span></div></div><div class="acc-objective">⏱️ Objetivo: 100% completado</div></div>
+      <div class="acc-card"><div class="acc-card-hdr"><div class="acc-card-icon">✓</div><div class="acc-card-title">Cumplimiento</div></div><div class="chart-container"><canvas id="chCump"></canvas><div class="donut-center"><div class="donut-value" id="a-comp-pct">0%</div><div class="donut-label">Completadas</div></div></div><div class="stat-item"><div class="stat-color" style="background:var(--green)"></div><div class="stat-text"><span>Completado</span><span id="a-comp-n">—</span></div></div><div class="stat-item"><div class="stat-color" style="background:#e53935"></div><div class="stat-text"><span>Pendiente</span><span id="a-pend-n">—</span></div></div><div class="acc-objective">⏱️ Objetivo: 100% completado</div></div>
       <div class="acc-card"><div class="acc-card-hdr"><div class="acc-card-icon">📍</div><div class="acc-card-title">Avance por Zona</div></div><div class="zonas-content" id="a-zonas"></div></div>
     </div>
 
@@ -1579,8 +1579,9 @@ tr:hover td{background:var(--bg)}
       <div class="fg" style="grid-column:span 2">
         <label class="fl">Empresa / Sede *</label>
         <div style="display:flex;gap:6px;align-items:center">
-          <select class="fse" id="aFEmpSel" onchange="onEmpresaSelect()" style="flex:0 0 90px;font-weight:700">
-            <option value="">-- Sigla --</option>
+          <select class="fse" id="aFEmpSel" onchange="onEmpresaSelect()" style="flex:0 0 115px;font-weight:700">
+            <option value="" selected>-- Sigla --</option>
+            <option value="TODAS" class="emp-opt-todas" style="font-weight:700;color:#1b5e20;background:#e8f5e9">★ TODAS las empresas</option>
           </select>
           <span style="font-size:.78rem;color:var(--muted);flex:1" id="aFEmpNombre">Selecciona una empresa</span>
           <span style="font-size:.72rem;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:4px" id="aFEmpPais"></span>
@@ -1751,9 +1752,9 @@ function _sharedListen(key) {
       _sharedCache[key] = newVal;
       try {
         if (key === 'ri2026v4')            { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
-        if (key === 'ght_v2')              { loadAcompData(); renderHoy(); }
-        if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); }
-        if (key === 'ri2026_histsem')      { try{ loadHistSem(); }catch(e){} }
+        if (key === 'ght_v2')              { loadAcompData(); renderHoy(); try{ renderAcomp(); }catch(e){} }
+        if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); try{ renderRegistroForm(); }catch(e){} }
+        if (key === 'ri2026_histsem')      { try{ loadHistSem(); renderRegistroForm(); }catch(e){} }
         if (key === 'ri2026_logros_edits') { try{ _logrosEdits=JSON.parse(newVal||'{}'); }catch(e){} }
         if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
       } catch(e) { /* función aún no lista */ }
@@ -2132,10 +2133,16 @@ const DATOS_ACOMP=[
 let tareas = [];
 let aNextId = 200;
 let nextId = 2000;
-let acompData = [...DATOS_ACOMP];
+let acompData = []; // Se carga desde localStorage/Firebase en loadAcompData()
 let acompNextId = acompData.length + 1;
 let acompEditId = null;
-let acompCalYear = 2026, acompCalMonth = 4;
+let acompCalYear = new Date().getFullYear();
+let acompCalMonth = new Date().getMonth(); // Mes actual siempre, no mayo fijo
+// Sincronizar selector aFilt-mes al iniciar (se llama después de DOMContentLoaded)
+function _syncAcompMesSel(){
+  var sel=document.getElementById('aFilt-mes');
+  if(sel&&!sel.value) sel.value=String(acompCalMonth+1);
+}
 let chProg=null, chCump=null, chResp=null, chMes=null, chTipo=null;
 
 // ── UTILS ──────────────────────────────────────────────────────────────
@@ -2171,12 +2178,29 @@ function getWeekRange(y,w){
 // ── PERSISTENCE ────────────────────────────────────────────────────────
 function loadData(){
   try{
-    const raw=_sharedCache['ri2026v4']||null;
-    if(raw){ const d=JSON.parse(raw); tareas=d.tareas||[]; nextId=d.nextId||2000; }
-  }catch(e){}
-  if(!tareas.length) tareas=getSampleTasks();
+    var raw=null;
+    try{ raw=localStorage.getItem('ri2026v4'); }catch(e1){}
+    if(!raw) raw=_sharedCache['ri2026v4']||null;
+    if(raw){
+      var d=JSON.parse(raw);
+      if(d && d.tareas !== undefined){
+        tareas=Array.isArray(d.tareas)?d.tareas:[];
+        nextId=d.nextId||2000;
+        return;
+      }
+    }
+  }catch(e){ console.warn('loadData error:',e); }
+  // Primera vez sin datos — NO usar sample tasks en producción
+  if(!tareas.length && !localStorage.getItem('ri2026v4')) {
+    // Solo cargar tasks de ejemplo si NUNCA se ha guardado nada
+    tareas = getSampleTasks();
+  }
 }
-function saveData(){ _sharedSet('ri2026v4', JSON.stringify({tareas,nextId})); }
+function saveData(){
+  var payload=JSON.stringify({tareas:tareas,nextId:nextId});
+  try{ localStorage.setItem('ri2026v4', payload); }catch(e){}
+  _sharedSet('ri2026v4', payload);
+}
 
 // ── Persistencia del histórico de ejecución semanal (_histSem) ──────────────
 // Garantiza que actividades realizadas, observaciones y compromisos registrados
@@ -2187,12 +2211,14 @@ function saveHistSem(){
     (PLAN_ROWS_FULL||[]).forEach(function(r,i){
       if(r._histSem && Object.keys(r._histSem).length) map[i]=r._histSem;
     });
-    _sharedSet('ri2026_histsem', JSON.stringify(map));
+    var _histPayload=JSON.stringify(map);
+  try{ localStorage.setItem('ri2026_histsem', _histPayload); }catch(e){}
+  _sharedSet('ri2026_histsem', _histPayload);
   }catch(e){}
 }
 function loadHistSem(){
   try{
-    var raw=_sharedCache['ri2026_histsem']||null;
+    var raw=localStorage.getItem('ri2026_histsem')||_sharedCache['ri2026_histsem']||null;
     if(!raw) return;
     var map=JSON.parse(raw)||{};
     Object.keys(map).forEach(function(i){
@@ -2203,12 +2229,34 @@ function loadHistSem(){
 }
 function loadAcompData(){
   try{
-    const raw=_sharedCache['ght_v2']||null;
-    if(raw){ const d=JSON.parse(raw); acompData=d.visits||[...DATOS_ACOMP]; acompNextId=d.nextId||acompData.length+1; return; }
-  }catch(e){}
-  acompData=[...DATOS_ACOMP]; acompNextId=acompData.length+1;
+    // Fuentes en orden de prioridad:
+    // 1. localStorage (inmediato y confiable)
+    // 2. _sharedCache (Firebase)
+    var raw=null;
+    try{ raw=localStorage.getItem('ght_v2'); }catch(e1){}
+    if(!raw) raw=_sharedCache['ght_v2']||null;
+    if(raw){
+      var d=JSON.parse(raw);
+      if(d && typeof d==='object' && d.visits !== undefined){
+        acompData=Array.isArray(d.visits)?d.visits:[];
+        acompNextId=d.nextId||Math.max.apply(null,[1].concat(acompData.map(function(v){return (v.id||0)+1;})));
+        _sharedCache['ght_v2']=raw;
+        return;
+      }
+    }
+  }catch(e){ console.warn('loadAcompData error:',e); }
+  // Primera vez: sin datos guardados, acompData queda vacío (no cargar datos de ejemplo)
+  // Los datos de ejemplo (DATOS_ACOMP) son solo para desarrollo, no para usuarios finales
+  acompData=[];
+  acompNextId=1;
 }
-function saveAcompData(){ _sharedSet('ght_v2', JSON.stringify({visits:acompData,nextId:acompNextId})); }
+function saveAcompData(){
+  var payload=JSON.stringify({visits:acompData,nextId:acompNextId});
+  // Escribir en localStorage inmediatamente — garantía de persistencia local
+  try{ localStorage.setItem('ght_v2', payload); }catch(e){}
+  // Luego sincronizar con Firebase
+  _sharedSet('ght_v2', payload);
+}
 function editAcompNotes(id,btn){
   document.querySelectorAll('.notes-float-panel').forEach(el=>el.remove());
   const v=acompData.find(x=>x.id===id);
@@ -3748,7 +3796,9 @@ let planEdits={}; // loaded from shared storage in initSharedStorage()
 
 function savePlanEdit(k,v){
   planEdits[k]=v;
-  _sharedSet('ri2026_plan_edits', JSON.stringify(planEdits));
+  var _planPayload=JSON.stringify(planEdits);
+  try{ localStorage.setItem('ri2026_plan_edits', _planPayload); }catch(e){}
+  _sharedSet('ri2026_plan_edits', _planPayload);
   // Recalcular banner dinámicamente sin re-renderizar toda la vista
   recalcularBanner();
   // [FIX] Sincronización reactiva: si el informe está activo, re-renderizarlo
@@ -5378,9 +5428,9 @@ function taskCardHTML(t){
   const today=new Date().toISOString().split('T')[0];
   const isVenc=t.fechaVenc&&t.fechaVenc<today&&t.estado!=='completado';
   const isHoy=t.fechaVenc===today;
-  const colResp=(t.responsable||'').toLowerCase().includes('sandra')?'var(--purple)':
-                (t.responsable||'').toLowerCase().includes('andres')?'var(--blue)':'var(--amber)';
-  const colBorder=isVenc?'var(--red)':isHoy?'var(--orange)':'var(--blue)';
+  const colResp=(t.responsable||'').toLowerCase().includes('sandra')?'#6a1b9a':  // Sandra L — Violeta
+                (t.responsable||'').toLowerCase().includes('andres')?'#e65100':'#00695c'; // AV — Naranja · JH — Teal
+  const colBorder=isVenc?'var(--red)':isHoy?'var(--orange)':'#e65100';
   const impBadge={'alta':'b-alta','media':'b-media','baja':'b-baja'}[t.importancia?.toLowerCase()]||'b-media';
   const estadoBadge={'completado':'b-cerrada','pendiente':'b-media','en_progreso':'b-abierta','Cerrada':'b-cerrada','Vencida':'b-vencida','Abierta':'b-abierta','En proceso':'b-en-proceso'}[t.estado]||'b-media';
   const isComp=t.estado==='completado';
@@ -5601,13 +5651,28 @@ function renderAcomp(){
   const filtModal=document.getElementById('aFilt-modal')?.value||'';
   const filtEmpresa=document.getElementById('aFilt-empresa')?.value||'';
   let d=acompData;
-  if(filtResp) d=d.filter(v=>v.responsable===filtResp||v.responsable.includes(filtResp));
+  if(filtResp){
+    var _frLow=filtResp.toLowerCase().trim();
+    d=d.filter(v=>{
+      var rLow=(v.responsable||'').toLowerCase();
+      return rLow===_frLow || rLow.includes(_frLow) || _frLow.includes(rLow.split(' ')[0]);
+    });
+  }
   if(filtZona) d=d.filter(v=>v.zona===filtZona);
   if(filtTipo) d=d.filter(v=>v.tipo&&v.tipo.toLowerCase().includes(filtTipo.toLowerCase()));
-  if(filtMes) d=d.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===parseInt(filtMes));
+  if(filtMes){
+    // Sincronizar variables del calendario con el mes seleccionado
+    var mesNum=parseInt(filtMes);
+    acompCalMonth=mesNum-1; // 0-indexed
+    // NO filtramos los datos aquí — solo navegamos al mes; el calendario y Gantt muestran ese mes
+    // La lista sí filtra por mes para coherencia
+    d=d.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===mesNum);
+  }
   if(filtModal) d=d.filter(v=>v.modalidad===filtModal);
   if(filtEmpresa) d=d.filter(v=>v.empresa===filtEmpresa);
-  // KPIs
+  // Sincronizar selector visual con mes activo
+  if(typeof _syncAcompMesSel==='function') _syncAcompMesSel();
+  // KPIs — calculados sobre datos del mes visible
   const total=d.length, comp=d.filter(v=>v.estado==='completado').length,
         pend=d.filter(v=>v.estado==='pendiente').length, prog=d.filter(v=>v.estado==='programado').length;
   const horas=d.reduce((s,v)=>s+(v.duracion||0),0);
@@ -5638,7 +5703,7 @@ function renderAcompCharts(d){
   // Cumplimiento donut
   if(chCump){chCump.destroy();chCump=null;}
   const c2=document.getElementById('chCump');
-  if(c2) chCump=new Chart(c2,{type:'doughnut',data:{labels:['Completado','Pendiente'],datasets:[{data:[comp,total-comp],backgroundColor:['#2d5a3d','#fbc02d'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false}}}});
+  if(c2) chCump=new Chart(c2,{type:'doughnut',data:{labels:['Completado','Pendiente'],datasets:[{data:[comp,total-comp],backgroundColor:['#2e7d32','#e53935'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},datalabels:{display:false}}}});
   // Zonas
   const zonas={}; d.forEach(v=>{zonas[v.zona]=(zonas[v.zona]||0)+1;});
   const zonaEl=document.getElementById('a-zonas');
@@ -5687,13 +5752,30 @@ function renderAcompTable(){
   const filtGEmp=document.getElementById('aFilt-empresa')?.value||'';
   let d=acompData;
   if(filtGZona) d=d.filter(v=>v.zona===filtGZona);
-  if(filtGMes) d=d.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===parseInt(filtGMes));
-  if(filtGResp) d=d.filter(v=>v.responsable&&v.responsable.includes(filtGResp));
+  // Mes: filtrar SOLO si hay un mes explícitamente seleccionado
+  // Sin filtro de mes activo → mostrar todos los registros
+  if(filtGMes){
+    var _mesFiltNum = parseInt(filtGMes);
+    d=d.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===_mesFiltNum);
+  }
+  if(filtGResp){
+    var _fgRLow=filtGResp.toLowerCase().trim();
+    d=d.filter(v=>{
+      var rLow=(v.responsable||'').toLowerCase();
+      return rLow===_fgRLow || rLow.includes(_fgRLow) || _fgRLow.includes(rLow.split(' ')[0]);
+    });
+  }
   if(filtGEmp) d=d.filter(v=>v.empresa===filtGEmp);
   if(filtZona) d=d.filter(v=>v.zona===filtZona);
   if(filtEst) d=d.filter(v=>v.estado===filtEst);
   if(filtEmp) d=d.filter(v=>v.empresa===filtEmp);
-  if(filtResp) d=d.filter(v=>v.responsable&&v.responsable.includes(filtResp));
+  if(filtResp){
+    var _fRLow=filtResp.toLowerCase().trim();
+    d=d.filter(v=>{
+      var rLow=(v.responsable||'').toLowerCase();
+      return rLow===_fRLow || rLow.includes(_fRLow) || _fRLow.includes(rLow.split(' ')[0]);
+    });
+  }
   if(search) d=d.filter(v=>(v.empresa||'').toLowerCase().includes(search)||(v.contacto||'').toLowerCase().includes(search)||(getEmpresaNombre(v.empresa)||'').toLowerCase().includes(search)||(v.notas||'').toLowerCase().includes(search));
   // sort by fecha desc
   d=[...d].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
@@ -5702,8 +5784,8 @@ function renderAcompTable(){
   const tbody=document.getElementById('a-tbl-body');
   if(!tbody) return;
   if(!d.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">Sin acompañamientos con los filtros aplicados</td></tr>`;return;}
-  const estColor={'completado':'#2d5a3d','programado':'#5a9e70','pendiente':'#f59e0b','cancelado':'#999'};
-  const estBg={'completado':'#e8f5e9','programado':'#f1f8e9','pendiente':'#fff8e1','cancelado':'#f5f5f5'};
+  const estColor={'completado':'#0d6e3f','programado':'#1565c0','pendiente':'#c62828','cancelado':'#757575'};
+  const estBg={'completado':'#e8f5e9','programado':'#e3f2fd','pendiente':'#ffebee','cancelado':'#f5f5f5'};
   const tipoColor={'Siembra Valor':'#1565c0','OVC':'#2e7d32','Verdad única':'#6a1e6e'};
   tbody.innerHTML=d.map(v=>{
     const emp=getEmpresaById(v.empresa);
@@ -5752,10 +5834,17 @@ function renderAcompCalendar(d){
   });
 
   // Color por responsable (igual que referencia)
-  const respColors=['#FF8C42','#2E7D32','#1E88E5','#8E24AA','#F4511E','#0288D1','#43A047','#1565C0'];
+  // Colores FIJOS por responsable — nunca cambian independiente del orden
+  var _RESP_COLOR_FIXED = function(r){
+    var s=(r||'').toLowerCase();
+    if(s.includes('sandra')) return '#6a1b9a';  // Sandra L — Violeta
+    if(s.includes('andres')||s.includes(' av')||s==='av') return '#e65100';  // AV — Naranja
+    if(s.includes('jeison')||s.includes(' jh')||s==='jh') return '#00695c';  // JH — Teal
+    return '#546e7a';  // Otros — gris azulado
+  };
   const responsables=[...new Set(d.map(v=>v.responsable).filter(Boolean))].sort();
   const colorMap={};
-  responsables.forEach((r,i)=>{ colorMap[r]=respColors[i%respColors.length]; });
+  responsables.forEach(function(r){ colorMap[r]=_RESP_COLOR_FIXED(r); });
   // Leyenda de responsables
   const legendEl=document.getElementById('a-cal-legend-resp');
   if(legendEl){
@@ -5763,7 +5852,7 @@ function renderAcompCalendar(d){
   }
 
   // Estado → ícono
-  const estIcon={'completado':'✓','programado':'○','pendiente':'!','cancelado':'✕'};
+  const estIcon={'completado':'✓','programado':'→','pendiente':'⚠','cancelado':'✕'};
 
   // Construir grid inline (misma técnica que la referencia)
   let html=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%">`;
@@ -5803,15 +5892,17 @@ function renderAcompCalendar(d){
       const bgColor=colorMap[v.responsable]||'#607d8b';
       const estado=estIcon[v.estado]||'?';
       const vComp=v.estado==='completado';
-      html+=`<div style="font-size:9px;padding:2px 4px;border-radius:3px;margin:1px 0;background:${vComp?'#43a047':bgColor};color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s;${vComp?'opacity:.75':''}" title="${vComp?'Completado — click para editar':'Click para editar o marcar completado'}">
+      // Estado: borde e ícono — color SIEMPRE del responsable
+      const chipBorder = vComp ? '2px solid rgba(255,255,255,0.6)' : (v.estado==='programado'?'2px dashed rgba(255,255,255,0.5)':'2px solid rgba(255,255,255,0.3)');
+      const chipOpacity = vComp ? '1' : (v.estado==='programado'?'0.9':'0.85');
+      html+=`<div style="font-size:9px;padding:2px 4px;border-radius:3px;margin:1px 0;background:${bgColor};color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s;border:${chipBorder};opacity:${chipOpacity}" title="${v.responsable} · ${v.estado} — click para editar">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;overflow:hidden" onclick="event.stopPropagation();openAcompModal(${v.id})">
             <div style="font-size:8px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${vComp?'text-decoration:line-through':''}">${esc(v.empresa||'?')}</div>
             <div style="font-size:7px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((v.responsable||'').split(' ')[0])}</div>
             <div style="font-size:7px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.tipo||'—')}</div>
           </div>
-          ${vComp?'<span style="font-size:9px;flex-shrink:0">✓</span>'
-            :`<button onclick="event.stopPropagation();marcarVisitaCalendario(${v.id})" title="Marcar completada" style="background:rgba(255,255,255,.25);border:none;color:#fff;cursor:pointer;border-radius:2px;font-size:8px;padding:1px 3px;flex-shrink:0;line-height:1">✓</button>`}
+          ${vComp?'<span style="font-size:10px;flex-shrink:0;font-weight:900">✓</span>':v.estado==='programado'?'<span style="font-size:10px;flex-shrink:0;font-weight:900">→</span>':'<span style="font-size:10px;flex-shrink:0;font-weight:900">⚠</span>'}
         </div>
       </div>`;
     });
@@ -5831,19 +5922,35 @@ function renderAcompGantt(d){
   const withDate=d.filter(v=>v.fecha);
   if(!withDate.length){cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:2rem">Sin fechas registradas</div>';return;}
 
-  // Responsables — fixed order + extras
+  // ── Mes a mostrar: usar el mismo mes del calendario (acompCalYear/Month)
+  //    Si no hay filtro de mes activo, usar el mes del calendario navegado
+  const filtMesEl = document.getElementById('aFilt-mes');
+  const filtMesVal = filtMesEl ? filtMesEl.value : '';
+  let ganttYear, ganttMonth;
+  if(filtMesVal){
+    // Mes seleccionado en el filtro → usar ese mes con el año del calendario
+    ganttYear  = (typeof acompCalYear!=='undefined') ? acompCalYear : new Date().getFullYear();
+    ganttMonth = parseInt(filtMesVal) - 1; // 0-indexed
+  } else {
+    // Sin filtro → usar el mes actual del calendario
+    ganttYear  = (typeof acompCalYear!=='undefined')  ? acompCalYear  : new Date().getFullYear();
+    ganttMonth = (typeof acompCalMonth!=='undefined') ? acompCalMonth : new Date().getMonth();
+  }
+
+  // Rango exacto del mes seleccionado (mismo que el calendario)
+  const firstDay = new Date(ganttYear, ganttMonth, 1);
+  const lastDay  = new Date(ganttYear, ganttMonth+1, 0);
+  const totalDays = lastDay.getDate();
+
+  // Responsables — orden fijo
   const fixedOrder=['Andres Villamil','Jeison Hurtado','Sandra Liliana Garcia'];
   const extraResps=[...new Set(withDate.map(v=>v.responsable||'Sin asignar'))].filter(r=>!fixedOrder.includes(r)).sort();
   const resps=[...fixedOrder.filter(r=>withDate.some(v=>v.responsable===r)),...extraResps];
 
-  // Consecutive days from min to max date
-  const minD=new Date(Math.min(...withDate.map(v=>new Date(v.fecha))));
-  const maxD=new Date(Math.max(...withDate.map(v=>new Date(v.fecha))));
-  const totalDays=Math.ceil((maxD-minD)/86400000)+1;
-
   const todayStr=new Date().toISOString().split('T')[0];
-  const CELL=38;
+  const CELL=34;
   const RESP_W=170;
+  const mNames=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   // Build index: resp -> dateStr -> visits[]
   const idx={};
@@ -5855,86 +5962,121 @@ function renderAcompGantt(d){
     idx[r][v.fecha].push(v);
   });
 
-  // State → gradient color (matches reference)
-  const stateGrad=(estado)=>{
-    if(estado==='completado') return 'linear-gradient(90deg,#43a047,#2e7d32)';
-    if(estado==='programado') return 'linear-gradient(90deg,#1e88e5,#1565c0)';
-    return 'linear-gradient(90deg,#fbc02d,#f57f17)';
+  // Colores fijos por responsable (idénticos al calendario)
+  var _RESP_COLOR_FIXED=function(r){
+    var s=(r||'').toLowerCase();
+    if(s.includes('sandra')) return '#6a1b9a';
+    if(s.includes('andres')||s.includes(' av')||s==='av') return '#e65100';
+    if(s.includes('jeison')||s.includes(' jh')||s==='jh') return '#00695c';
+    return '#546e7a';
   };
-  // Dominant state for a list of visits (completado > programado > pendiente)
+
+  // Estado → gradiente (para leyenda)
+  const stateGrad=(estado)=>{
+    if(estado==='completado') return 'linear-gradient(90deg,#2e7d32,#1b5e20)';
+    if(estado==='programado') return 'linear-gradient(90deg,#1976d2,#0d47a1)';
+    return 'linear-gradient(90deg,#e53935,#b71c1c)';
+  };
   const domState=(vList)=>{
     if(vList.some(v=>v.estado==='completado')) return 'completado';
     if(vList.some(v=>v.estado==='programado')) return 'programado';
     return 'pendiente';
   };
 
-  // Legend
-  let html=`<div style="display:flex;gap:16px;margin-bottom:14px;font-size:11px;align-items:center;flex-wrap:wrap;padding:8px 10px;background:#f9fdf7;border-radius:8px;border:1px solid #e0ead8;">
-    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(90deg,#43a047,#2e7d32);display:inline-block"></span>Completado</span>
-    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(90deg,#1e88e5,#1565c0);display:inline-block"></span>Programado</span>
-    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:linear-gradient(90deg,#fbc02d,#f57f17);display:inline-block"></span>Pendiente</span>
-    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:#f0f4ee;border:1px solid #dce5d8;display:inline-block"></span>Sin actividad</span>
-    <span style="margin-left:auto;font-size:10px;color:#6b7a6b">Pasa el cursor sobre una celda para ver detalles · El número indica múltiples visitas</span>
-  </div>
-  <div style="overflow-x:auto;padding-bottom:10px">
-    <div style="display:flex;min-width:max-content;gap:6px;align-items:stretch">
-      <div style="width:${RESP_W}px;flex-shrink:0"></div>
-      <div style="display:flex;gap:2px">`;
+  // ── Leyenda ──────────────────────────────────────────────────────────────
+  let html=`<div style="display:flex;gap:12px;margin-bottom:12px;font-size:11px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:#f9fdf7;border-radius:8px;border:1px solid #e0ead8;">
+    <b style="color:#1b5e20;font-size:12px">${mNames[ganttMonth]} ${ganttYear}</b>
+    <span style="color:var(--muted)">|</span>
+    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:linear-gradient(90deg,#2e7d32,#1b5e20);display:inline-block"></span>Completado</span>
+    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:linear-gradient(90deg,#1976d2,#0d47a1);display:inline-block"></span>Programado</span>
+    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:linear-gradient(90deg,#e53935,#b71c1c);display:inline-block"></span>Pendiente</span>
+    <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:#eeeeee;border:1px solid #bdbdbd;display:inline-block"></span>Sin actividad</span>
+    <span style="margin-left:auto;font-size:9px;color:#6b7a6b">Color fondo = Responsable &nbsp;·&nbsp; ícono = Estado</span>
+  </div>`;
 
-  // Date headers
-  for(let i=0;i<totalDays;i++){
-    const d=new Date(minD.getTime()+i*86400000);
-    const ds=d.toISOString().split('T')[0];
+  // ── Header de días (sincronizado con el mes exacto) ───────────────────────
+  html+=`<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:11px;min-width:max-content">`;
+  html+=`<thead><tr>`;
+  html+=`<th style="width:${RESP_W}px;min-width:${RESP_W}px;padding:6px 10px;background:#f1f5f1;border:1px solid #d0ddd0;position:sticky;left:0;z-index:2;text-align:left;font-weight:700;color:#1b5e20">Responsable</th>`;
+
+  // Días del mes — exactamente los mismos que el calendario
+  for(let d2=1;d2<=totalDays;d2++){
+    const dt=new Date(ganttYear,ganttMonth,d2);
+    const ds=`${ganttYear}-${String(ganttMonth+1).padStart(2,'0')}-${String(d2).padStart(2,'0')}`;
+    const isWknd=dt.getDay()===0||dt.getDay()===6;
     const isToday=ds===todayStr;
-    const dow=['D','L','M','X','J','V','S'][d.getDay()];
-    html+=`<div style="min-width:${CELL}px;text-align:center;padding:3px 1px">
-      <div style="font-size:8px;color:${isToday?'#1b5e20':'#bbb'};font-weight:${isToday?'900':'400'};text-transform:uppercase">${dow}</div>
-      <div style="font-size:9px;color:${isToday?'#1b5e20':'#999'};font-weight:${isToday?'900':'600'}">${d.getDate()}/${d.getMonth()+1}</div>
-    </div>`;
+    const dayNames=['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+    html+=`<th style="width:${CELL}px;min-width:${CELL}px;padding:3px 1px;text-align:center;border:1px solid #d0ddd0;
+      background:${isToday?'#1b5e20':isWknd?'#f0f0f0':'#f8fbf8'};
+      color:${isToday?'#fff':isWknd?'#bbb':'#3a5c3a'};font-weight:${isToday?'900':'600'};font-size:9px">
+      <div>${dayNames[dt.getDay()]}</div><div style="font-size:10px">${d2}</div>
+    </th>`;
   }
-  html+=`</div></div>`;
+  html+=`</tr></thead><tbody>`;
 
-  // Rows por responsable
+  // ── Fila por responsable ──────────────────────────────────────────────────
   resps.forEach(resp=>{
-    const totalResp=withDate.filter(v=>v.responsable===resp).length;
-    const compResp=withDate.filter(v=>v.responsable===resp&&v.estado==='completado').length;
-    const initials=resp.split(' ').map(p=>p[0]).slice(0,2).join('');
-    const pct=totalResp>0?Math.round(compResp/totalResp*100):0;
+    const respColor = _RESP_COLOR_FIXED(resp);
+    const initials  = resp.split(' ').map(p=>p[0]).slice(0,2).join('');
+    const totalResp = withDate.filter(v=>v.responsable===resp).length;
+    const compResp  = withDate.filter(v=>v.responsable===resp&&v.estado==='completado').length;
+    const pct       = totalResp>0?Math.round(compResp/totalResp*100):0;
 
-    html+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-      <div style="width:${RESP_W}px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:4px 0">
-        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1b5e20,#43a047);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+    html+=`<tr>`;
+    html+=`<td style="width:${RESP_W}px;min-width:${RESP_W}px;padding:5px 8px;border:1px solid #d0ddd0;
+      background:var(--bg);position:sticky;left:0;z-index:1;vertical-align:middle">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${respColor};color:#fff;
+          font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:#1a1a1a">${resp.split(' ').slice(0,2).join(' ')}</div>
-          <div style="font-size:9px;color:#6b7a6b">${compResp}/${totalResp} · ${pct}%</div>
+          <div style="font-size:10px;font-weight:700;color:#263238">${resp.split(' ').slice(0,2).join(' ')}</div>
+          <div style="font-size:8px;color:var(--muted)">${pct}% completado</div>
         </div>
       </div>
-      <div style="display:flex;gap:2px">`;
+    </td>`;
 
-    for(let i=0;i<totalDays;i++){
-      const d=new Date(minD.getTime()+i*86400000);
-      const ds=d.toISOString().split('T')[0];
-      const vList=(idx[resp]&&idx[resp][ds])?idx[resp][ds]:[];
-      const cnt=vList.length;
+    // Celda por día del mes
+    for(let d2=1;d2<=totalDays;d2++){
+      const ds=`${ganttYear}-${String(ganttMonth+1).padStart(2,'0')}-${String(d2).padStart(2,'0')}`;
+      const dt=new Date(ganttYear,ganttMonth,d2);
+      const isWknd=dt.getDay()===0||dt.getDay()===6;
       const isToday=ds===todayStr;
-      const todayBorder=isToday?'outline:2px solid #1b5e20;outline-offset:-2px;':'';
+      const vList=idx[resp][ds]||[];
+      const hasEvents=vList.length>0;
+      const state=hasEvents?domState(vList):null;
 
-      if(cnt===0){
-        html+=`<div style="min-width:${CELL}px;height:22px;background:${isToday?'#e8f5e9':'#f0f4ee'};border-radius:4px;${todayBorder}"></div>`;
-      } else {
-        const estado=domState(vList);
-        const bg=stateGrad(estado);
-        const tips=vList.map(v=>`${v.empresa}${v.tipo?' · '+v.tipo:''}${v.estado?' ('+v.estado+')':''}`).join(' | ');
-        const label=cnt===1?'●':String(cnt);
-        html+=`<div style="min-width:${CELL}px;height:22px;background:${bg};border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:${cnt===1?'10':'9'}px;color:#fff;font-weight:700;cursor:default;${todayBorder}" title="${esc(tips)}">${label}</div>`;
+      let cellBg=isToday?'#e8f5e9':isWknd?'#f8f8f8':'var(--bg)';
+      let cellBorder=`1px solid ${hasEvents?respColor:isWknd?'#eeeeee':'#e8ede8'}`;
+
+      html+=`<td style="width:${CELL}px;min-width:${CELL}px;padding:2px;border:${cellBorder};
+        background:${cellBg};text-align:center;vertical-align:middle;cursor:${hasEvents?'pointer':'default'}"
+        ${hasEvents?`onclick="openAcompModal('${ds}')"`:''}
+        title="${hasEvents?vList.map(v=>v.empresa||v.tipo||'').join(', '):''}">`;
+
+      if(hasEvents){
+        const grad=stateGrad(state);
+        const stIcon=state==='completado'?'✓':state==='programado'?'→':'⚠';
+        // Número de visitas + ícono de estado dominante
+        html+=`<div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <div style="width:${CELL-6}px;height:20px;border-radius:3px;background:${grad};
+            display:flex;align-items:center;justify-content:center;gap:2px">
+            <span style="color:#fff;font-size:9px;font-weight:900">${stIcon}</span>
+            ${vList.length>1?`<span style="color:#fff;font-size:8px;font-weight:700">${vList.length}</span>`:''}
+          </div>
+          <div style="width:${CELL-6}px;height:4px;border-radius:2px;background:${respColor};opacity:.6"></div>
+        </div>`;
       }
+
+      html+=`</td>`;
     }
-    html+=`</div></div>`;
+    html+=`</tr>`;
   });
 
-  html+=`</div>`;
+  html+=`</tbody></table></div>`;
   cont.innerHTML=html;
 }
+
+
 function switchAcompTab(tab, btn){
   document.querySelectorAll('.acc-tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.acc-tab-btn').forEach(el=>el.classList.remove('active'));
@@ -5942,8 +6084,20 @@ function switchAcompTab(tab, btn){
   if(cont) cont.classList.add('active');
   if(btn) btn.classList.add('active');
 }
-function prevAcompMonth(){ if(acompCalMonth===0){acompCalMonth=11;acompCalYear--;}else acompCalMonth--; renderAcomp(); }
-function nextAcompMonth(){ if(acompCalMonth===11){acompCalMonth=0;acompCalYear++;}else acompCalMonth++; renderAcomp(); }
+function prevAcompMonth(){
+  if(acompCalMonth===0){acompCalMonth=11;acompCalYear--;}else acompCalMonth--;
+  // Sincronizar el selector de mes con la navegación
+  var selMes=document.getElementById('aFilt-mes');
+  if(selMes) selMes.value=String(acompCalMonth+1);
+  renderAcomp();
+}
+function nextAcompMonth(){
+  if(acompCalMonth===11){acompCalMonth=0;acompCalYear++;}else acompCalMonth++;
+  // Sincronizar el selector de mes con la navegación
+  var selMes=document.getElementById('aFilt-mes');
+  if(selMes) selMes.value=String(acompCalMonth+1);
+  renderAcomp();
+}
 
 // ── ACOMP CRUD ────────────────────────────────────────────────────
 function onTareaEmpresaSelect(){
@@ -5956,11 +6110,19 @@ function onEmpresaSelect(){
   const sel=document.getElementById('aFEmpSel');
   const val=sel?.value||'';
   document.getElementById('aFEmp').value=val;
-  const emp=EMPRESAS.find(e=>e.id===val);
   const nombre=document.getElementById('aFEmpNombre');
   const pais=document.getElementById('aFEmpPais');
   const zona=document.getElementById('aFZona');
   const contList=document.getElementById('aFContList');
+  // Opción especial: TODAS las empresas
+  if(val==='TODAS'){
+    if(nombre){ nombre.textContent='Todas las empresas / Evento general'; nombre.style.color='#1b5e20'; nombre.style.fontWeight='700'; }
+    if(pais) pais.textContent='🌐';
+    if(zona) zona.value='';
+    return;
+  }
+  if(nombre){ nombre.style.color=''; nombre.style.fontWeight=''; }
+  const emp=EMPRESAS.find(e=>e.id===val);
   if(emp){
     if(nombre) nombre.textContent=emp.nombre;
     if(pais) pais.textContent=emp.pais==='COLOMBIA'?'🇨🇴 COL':emp.pais==='ECUADOR'?'🇪🇨 ECU':'🇺🇸 USA';
@@ -6023,25 +6185,86 @@ function openAcompModal(id){
       setF(['aFNotas','am-notas'],v.notas);
     }
   } else {
-    ['aFEmp','aFCont','aFFecha','aFZona','aFNotas'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const empSel2=document.getElementById('aFEmpSel');if(empSel2)empSel2.value='';
-    const n2=document.getElementById('aFEmpNombre');if(n2)n2.textContent='Selecciona una empresa';
-    const p2=document.getElementById('aFEmpPais');if(p2)p2.textContent='';
-    const rs=['am-responsable','am-tipo','am-estado','am-modalidad','am-duracion'];
-    const dv=['','Verdad única','pendiente','presencial','2'];
-    rs.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=dv[i]||'';});
+    // Reset todos los campos para nuevo registro
+    ['aFEmp','aFCont','aFFecha','aFZona','aFNotas','aFResp','aFDur'].forEach(function(fid){
+      var el=document.getElementById(fid); if(el) el.value='';
+    });
+    var empSel2=document.getElementById('aFEmpSel'); if(empSel2) empSel2.value='';
+    var n2=document.getElementById('aFEmpNombre'); if(n2){ n2.textContent='Selecciona una empresa'; n2.style.color=''; n2.style.fontWeight=''; }
+    var p2=document.getElementById('aFEmpPais'); if(p2) p2.textContent='';
+    // Defaults para selects
+    var defIds=['am-responsable','am-tipo','am-estado','am-modalidad','am-duracion','aFTipo','aFEstado','aFModal'];
+    var defVals=['','Verdad única','programado','presencial','2','Verdad única','programado','presencial'];
+    defIds.forEach(function(fid,i){
+      var el=document.getElementById(fid); if(el) el.value=defVals[i]||'';
+    });
+    // Desmarcar checkboxes de público objetivo
+    document.querySelectorAll('#aFPublicoWrap input').forEach(function(cb){ cb.checked=false; });
   }
   m.classList.add('show');
 }
 function closeAcompModal(){ const m=document.getElementById('acomp-modal-bg');if(m)m.classList.remove('show');acompEditId=null; }
 function saveAcompVisit(){
-  const get=id=>document.getElementById(id)?.value||'';
-  const publico=Array.from(document.querySelectorAll('#aFPublicoWrap input:checked')).map(c=>c.value);
-  const v={id:acompEditId||acompNextId++,empresa:(get('aFEmp')||get('am-empresa')).toUpperCase(),publicoObjetivo:publico,contacto:publico.join(', ')||get('aFCont').toUpperCase(),fecha:get('aFFecha')||get('am-fecha'),zona:get('aFZona')||get('am-zona'),responsable:get('aFResp')||get('am-responsable'),tipo:get('aFTipo')||get('am-tipo'),estado:get('aFEstado')||get('am-estado'),modalidad:get('aFModal')||get('am-modalidad'),duracion:parseFloat(get('aFDur')||get('am-duracion'))||2,notas:get('aFNotas')||get('am-notas')};
-  if(!v.empresa||!v.fecha){showAlert('Empresa y fecha son obligatorios','error');return;}
-  if(acompEditId){const idx=acompData.findIndex(x=>x.id===acompEditId);if(idx>-1)acompData[idx]=v;}else acompData.push(v);
-  saveAcompData(); closeAcompModal(); renderAcomp();
-  showAlert(acompEditId?'Acompañamiento actualizado':'Acompañamiento registrado','success');
+  var get=function(id){ var el=document.getElementById(id); return el?el.value.trim():''; };
+  var getSel=function(id){ var el=document.getElementById(id); return el?el.value:''; };
+  var publico=Array.from(document.querySelectorAll('#aFPublicoWrap input:checked')).map(function(c){return c.value;});
+
+  // Empresa: leer desde el selector visual directamente (no solo del hidden)
+  var empSelVal = getSel('aFEmpSel') || get('aFEmp') || get('am-empresa');
+  var empresa = empSelVal.toUpperCase();
+
+  var fecha = get('aFFecha') || get('am-fecha');
+
+  // Validación clara
+  if(!empresa || empresa==='-- SIGLA --'){
+    showAlert('Selecciona una empresa antes de guardar','error'); return;
+  }
+  if(!fecha){
+    showAlert('La fecha es obligatoria','error'); return;
+  }
+
+  var v = {
+    id          : acompEditId || acompNextId++,
+    empresa     : empresa,
+    publicoObjetivo: publico,
+    contacto    : publico.join(', ') || get('aFCont').toUpperCase(),
+    fecha       : fecha,
+    zona        : get('aFZona') || get('am-zona'),
+    responsable : get('aFResp') || get('am-responsable'),
+    tipo        : getSel('aFTipo') || get('am-tipo'),
+    estado      : getSel('aFEstado') || get('am-estado') || 'programado',
+    modalidad   : getSel('aFModal') || get('am-modalidad'),
+    duracion    : parseFloat(get('aFDur') || get('am-duracion')) || 2,
+    notas       : get('aFNotas') || get('am-notas')
+  };
+
+  // Guardar en array
+  if(acompEditId){
+    var idx=acompData.findIndex(function(x){return x.id===acompEditId;});
+    if(idx>-1) acompData[idx]=v; else acompData.push(v);
+  } else {
+    acompData.push(v);
+  }
+
+  // Persistir inmediatamente en localStorage Y Firebase
+  saveAcompData();
+  closeAcompModal();
+
+  // Navegar al mes del registro para que se vea
+  if(fecha){
+    var parts=fecha.split('-');
+    if(parts.length===3){
+      acompCalYear=parseInt(parts[0]);
+      acompCalMonth=parseInt(parts[1])-1; // 0-indexed
+      // Sincronizar selector de mes
+      var selMes=document.getElementById('aFilt-mes');
+      if(selMes) selMes.value=String(acompCalMonth+1);
+    }
+  }
+
+  // Re-renderizar mostrando el mes del registro
+  renderAcomp();
+  showAlert(acompEditId?'Acompañamiento actualizado ✓':'Acompañamiento registrado ✓','success');
 }
 function deleteAcomp(id){
   if(!confirm('¿Eliminar este acompañamiento?'))return;
@@ -6244,7 +6467,7 @@ function generarInformeEjecutivo(tList,mesStr,mesNum,filtResp){
     </div>
     ${Object.keys(porLinea).length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:#5c6bc0;border-radius:50%;display:inline-block"></span>Actividades por Línea</div>
-      ${LINEAS.map(l=>{const arr=porLinea[l.id]||[];if(!arr.length)return '';return `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px 10px;background:${l.color}10;border-radius:6px"><span style="width:10px;height:10px;background:${l.color};border-radius:50%;display:inline-block"></span><span style="font-size:12px;font-weight:700;color:${l.color}">${esc(l.short)}</span><span style="font-size:10px;color:var(--muted);margin-left:4px">${arr.length} actividades</span></div><div style="display:flex;flex-direction:column;gap:3px">${arr.map(t=>{const col={'completado':'#2d5a3d','en_progreso':'#5c6bc0','pendiente':'#f59e0b','abierta':'#78909c'}[t.estado]||'#999';const bg={'completado':'#e8f5e9','en_progreso':'#e8eaf6','pendiente':'#fff8e1','abierta':'#f5f5f5'}[t.estado]||'#f5f5f5';return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${bg};border-radius:6px;border-left:3px solid ${col}"><span style="font-size:10px;background:${col}22;color:${col};border-radius:10px;padding:1px 8px;flex-shrink:0;font-weight:600;min-width:72px;text-align:center">${esc(t.estado||'')}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${formatDate(t.fechaVenc||'')}</span></div>`;}).join('')}</div></div>`;}).join('')}
+      ${LINEAS.map(l=>{const arr=porLinea[l.id]||[];if(!arr.length)return '';return `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px 10px;background:${l.color}10;border-radius:6px"><span style="width:10px;height:10px;background:${l.color};border-radius:50%;display:inline-block"></span><span style="font-size:12px;font-weight:700;color:${l.color}">${esc(l.short)}</span><span style="font-size:10px;color:var(--muted);margin-left:4px">${arr.length} actividades</span></div><div style="display:flex;flex-direction:column;gap:3px">${arr.map(t=>{const col={'completado':'#1b5e20','en_progreso':'#0d47a1','pendiente':'#b71c1c','abierta':'#757575'}[t.estado]||'#999';const bg={'completado':'#e8f5e9','en_progreso':'#e3f2fd','pendiente':'#ffebee','abierta':'#f5f5f5'}[t.estado]||'#f5f5f5';return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${bg};border-radius:6px;border-left:3px solid ${col}"><span style="font-size:10px;background:${col}22;color:${col};border-radius:10px;padding:1px 8px;flex-shrink:0;font-weight:600;min-width:72px;text-align:center">${esc(t.estado||'')}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${formatDate(t.fechaVenc||'')}</span></div>`;}).join('')}</div></div>`;}).join('')}
     </div>`:''}
     ${acomps.length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:#0A9396;border-radius:50%;display:inline-block"></span>Acompañamientos · ${mesStr} 2026 <span style="font-size:10px;background:#e0f7fa;color:#0A9396;border-radius:10px;padding:2px 10px;margin-left:4px">${acomps.length} registros · ${empresasVis} empresas</span></div>
@@ -7146,9 +7369,9 @@ function renderHoy(){
 
   // \u2500\u2500 Panel por persona \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const personas = [
-    {ini:'SL', nombre:'Sandra Liliana', rol:'Directora RI', col:'var(--purple)', bg:'var(--purple-bg)', bd:'var(--purple-bd)', key:'Sandra'},
-    {ini:'AV', nombre:'Andr\u00e9s Villamil', rol:'Analista GHT-RI', col:'var(--blue)', bg:'var(--blue-bg)', bd:'var(--blue-bd)', key:'Andres'},
-    {ini:'JH', nombre:'Jeison Hurtado', rol:'Analista Proyectos', col:'var(--amber)', bg:'var(--amber-bg)', bd:'var(--amber-bd)', key:'Jeison'}
+    {ini:'SL', nombre:'Sandra Liliana', rol:'Directora RI', col:'#6a1b9a', bg:'var(--purple-bg)', bd:'var(--purple-bd)', key:'Sandra'},
+    {ini:'AV', nombre:'Andr\u00e9s Villamil', rol:'Analista GHT-RI', col:'#e65100', bg:'var(--blue-bg)', bd:'var(--blue-bd)', key:'Andres'},
+    {ini:'JH', nombre:'Jeison Hurtado', rol:'Analista Proyectos', col:'#00695c', bg:'var(--amber-bg)', bd:'var(--amber-bd)', key:'Jeison'}
   ];
   const persDiv = document.getElementById('hoy-personas');
   if(persDiv) persDiv.innerHTML = personas.map(p=>{
@@ -7169,7 +7392,7 @@ function renderHoy(){
       ${tP.length?tP.slice(0,3).map(t=>{
         const isVenc=t.fechaVenc&&t.fechaVenc<todayISO;
         const alertBg=isVenc?'#fff3e0':t.estado==='en_progreso'?'#e3f2fd':'#f3e5f5';
-        const alertBd=isVenc?'#f59e0b':t.estado==='en_progreso'?'var(--blue)':p.col;
+        const alertBd=isVenc?'#f59e0b':t.estado==='en_progreso'?'#e65100':p.col;
         const alertIco=isVenc?'⚠️':t.estado==='en_progreso'?'🔄':'📌';
         return `<div style="font-size:11px;padding:5px 8px;background:${alertBg};border-radius:5px;margin-bottom:4px;border-left:2px solid ${alertBd}">
           <div style="font-weight:600;color:var(--text)">${alertIco} ${(()=>{const _tp=t.titulo||'';const _tpid='tpn-'+t.id;if(_tp.length<=60)return esc(_tp);return esc(_tp.substring(0,60))+'\u2026<button onclick="(function(){var el=document.getElementById(\''+_tpid+'\');el.style.display=el.style.display===\'none\'?\'inline\':\'none\';this.textContent=el.style.display===\'none\'?\'+\':\'-\'})()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:9px;padding:0 2px">+</button><span id="'+_tpid+'" style="display:none">'+esc(_tp.substring(60))+'</span>';})()}</div>
@@ -7221,7 +7444,7 @@ function renderHoy(){
       const renderTareaHoy = t => {
         const isAV = AV_ROWS.includes(t);
         const tComp = t.estado==='completado'||t.estado==='Cerrada';
-        const col = tComp?'#4caf50':(t.responsable||'').toLowerCase().includes('sandra')?'var(--purple)':(t.responsable||'').toLowerCase().includes('andres')||isAV?'var(--blue)':'var(--amber)';
+        const col = tComp?'#4caf50':(t.responsable||'').toLowerCase().includes('sandra')?'#6a1b9a':(t.responsable||'').toLowerCase().includes('andres')||isAV?'#e65100':'#00695c';
         const resp = t.responsable || 'AV';
         const alertaTxt = t.alerta||'';
         const alertaLong = alertaTxt.length>120;
@@ -7332,8 +7555,14 @@ function initInformeDots(){
 // ── INIT ────────────────────────────────────────────────────────────
 function init(){
   // Cargar datos del almacenamiento compartido al cache local
-  try { planEdits=JSON.parse(_sharedCache['ri2026_plan_edits']||'{}'); } catch(e){ planEdits={}; }
-  try { ejecucionLog=JSON.parse(_sharedCache['ri2026_ejecucion_log']||'[]'); } catch(e){ ejecucionLog=[]; }
+  try {
+    var _rpRaw=localStorage.getItem('ri2026_plan_edits')||_sharedCache['ri2026_plan_edits']||'{}';
+    planEdits=JSON.parse(_rpRaw);
+  } catch(e){ planEdits={}; }
+  try {
+    var _reRaw=localStorage.getItem('ri2026_ejecucion_log')||_sharedCache['ri2026_ejecucion_log']||'[]';
+    ejecucionLog=JSON.parse(_reRaw);
+  } catch(e){ ejecucionLog=[]; }
   loadData();
   loadHistSem(); // restaurar histórico de ejecución semanal registrado
   autoVencer();
@@ -8134,15 +8363,15 @@ showView = function(v, btn){
     var completadas = rows.filter(function(r){ return r.estado === 'COMPLETADO'; }).length;
     var enProceso   = rows.filter(function(r){ return r.estado === 'EN PROCESO'; }).length;
     var noIniciadas = rows.filter(function(r){ return r.estado === 'NO INICIADO'; }).length;
-    var pctCol = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--blue)' : 'var(--orange)';
+    var pctCol = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#e65100' : 'var(--orange)';
     // Métricas clave
     var mets = [
       { label: 'Actividades', val: totalActs,   sub: linSel ? 'en esta línea' : 'plan completo', col: 'var(--accent)' },
-      { label: 'Plan total',  val: planTotal,   sub: 'semanas planeadas',    col: 'var(--blue)' },
+      { label: 'Plan total',  val: planTotal,   sub: 'semanas planeadas',    col: '#e65100' },
       { label: 'Ejecutadas',  val: ejecTotal,   sub: 'semanas ejecutadas',   col: 'var(--green)' },
       { label: 'Avance',      val: pct + '%',   sub: 'del plan ejecutado',   col: pctCol },
       { label: 'Completadas', val: completadas, sub: 'actividades',          col: '#1b5e20' },
-      { label: 'En Proceso',  val: enProceso,   sub: 'actividades',          col: 'var(--amber)' }
+      { label: 'En Proceso',  val: enProceso,   sub: 'actividades',          col: '#00695c' }
     ];
     var html = mets.map(function(m) {
       return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;box-shadow:var(--sh)">'
