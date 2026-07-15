@@ -10616,10 +10616,9 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
       return !agrSet[(typeof t==='string'?t:(t.txt||'')).trim()];
     });
 
-    var items, fuente;
+    var items = [], fuente;
     if (agregados.length > 0 || autoConfirmados.length > 0) {
       // ORDEN: agregados (negro) primero, luego automáticos confirmados (negro)
-      items = [];
       agregados.forEach(function(t){ items.push({txt:(typeof t==='string'?t:(t.txt||'')), manual:true, esAgregado:true}); });
       autoConfirmados.forEach(function(t){ items.push({txt:(typeof t==='string'?t:(t.txt||'')), manual:true, esAgregado:false}); });
       fuente = 'editado';
@@ -10630,16 +10629,11 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
     } else if (ofi) {
       // ENE-ABR sin edición → datos oficiales en ROJO
       items = (ofi.items||[]).map(function(t){ return {txt:(typeof t==='string'?t:(t.txt||'')), manual:false}; });
-      fuente = 'oficial';
+      fuente = 'editado';
     } else {
-      // MAY+ sin edición → autoconsolidado en ROJO (filtrar lista negra)
-      var _listaN = (edit&&edit.listaNegra)||[];
-      var _autoFilt = logrosAutoU.filter(function(t){
-        var tn = t.toLowerCase().substring(0,40);
-        return !_listaN.some(function(n){ return n.toLowerCase().substring(0,40)===tn; });
-      });
-      items = _autoFilt.slice(0,6).map(function(t){ return {txt:t, manual:false}; });
-      fuente = 'auto';
+      // Sin logros del equipo registrados — tarjeta vacía, sin automáticos
+      items = [];
+      fuente = 'manual';
     }
 
     return {g:g, label:label, pct:pct, items:items, fuente:fuente, plan:plan, ejec:ejec,
@@ -10647,9 +10641,11 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
             manualCount:manualItems.length, agregCount:agregados.length};
   });
 
-  var fuenteBadge = {oficial:'<span title="Logros transcritos del informe oficial" style="font-size:8px;background:#e8f5e9;color:#1b5e20;border-radius:6px;padding:1px 6px">📋 Logros: informe oficial</span>',
-    editado:'<span title="Logros editados manualmente" style="font-size:8px;background:#fff3e0;color:#e65100;border-radius:6px;padding:1px 6px">✎ Logros: editados</span>',
-    auto:'<span title="Logros autoconsolidados de la ejecución" style="font-size:8px;background:#e3f2fd;color:#1565c0;border-radius:6px;padding:1px 6px">⚙ Logros: auto</span>'};
+  var fuenteBadge = {
+    editado:'<span title="Logros registrados por el equipo" style="font-size:8px;background:#e8f5e9;color:#1b5e20;border-radius:6px;padding:1px 6px">✎ Logros: editados</span>',
+    manual:'<span title="Sin logros registrados este mes" style="font-size:8px;background:#f5f5f5;color:#9e9e9e;border-radius:6px;padding:1px 6px">Sin logros aún</span>',
+    oficial:'<span title="Logros registrados por el equipo" style="font-size:8px;background:#e8f5e9;color:#1b5e20;border-radius:6px;padding:1px 6px">✎ Logros: editados</span>',
+    auto:'<span title="Sin logros registrados este mes" style="font-size:8px;background:#f5f5f5;color:#9e9e9e;border-radius:6px;padding:1px 6px">Sin logros aún</span>'};
 
   var html = '<div style="margin-top:20px">'
     +'<div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px 12px 0 0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">'
@@ -10694,12 +10690,12 @@ function renderLogrosPorLinea(mesNum, containerId, fResp) {
                 +'<span style="font-size:10px;color:'+col+';line-height:1.45">'+esc(txt)+'</span>'
               +'</div>';
             }).join('')
-          : '<div style="font-size:10px;color:var(--muted);font-style:italic">Sin logros registrados este mes.<br><span style="font-size:9px">Registra la ejecución semanal o usa ✎ para capturarlos manualmente.</span></div>')
+          : '<div style="font-size:10px;color:var(--muted);font-style:italic">Sin logros registrados este mes.<br><span style="font-size:9px">Usa ✎ para agregar los logros del equipo.</span></div>')
         +'</div>'
       +'</div>';
     }).join('')
     +'</div>'
-    +'<div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:right">% de avance: ejecutado acumulado del año frente al plan anual 2026 · Logros ENE–ABR: informe oficial · MAY en adelante: autoconsolidado · Edita textos con ✎ · '+new Date().toLocaleDateString('es-CO')+'</div>'
+    +'<div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:right">% de avance: ejecutado acumulado del año frente al plan anual 2026 · Logros: registrados manualmente por el equipo · Usa ✎ para agregar · '+new Date().toLocaleDateString('es-CO')+'</div>'
   +'</div>';
 
   cont.innerHTML = html;
@@ -10774,39 +10770,7 @@ function editarLogrosLinea(mesNum, grupoId) {
     +'</div>';
   }
 
-  var autoRows = autoParaCheck.map(function(txt,i){
-    var txtNorm = txt.trim().toLowerCase().substring(0,40);
-    var yaConf = !!autoEditMap[txtNorm];
-    var txtMostrar = yaConf ? autoEditMap[txtNorm] : txt;
-    var colorInicial = yaConf ? '#1a1a1a' : '#c62828';
-    var bgInicial    = yaConf ? '#f8fff8' : '#fff5f5';
-    return '<div id="le-auto-row-'+i+'" style="display:flex;align-items:center;gap:6px;padding:6px 8px;margin-bottom:4px;border-radius:6px;background:'+bgInicial+';border:1px solid #ffcdd2;transition:background .2s">'
-      // Checkbox: al marcar → negro; al desmarcar → rojo
-      +'<input type="checkbox" id="le-chk-'+i+'" '+(yaConf?'checked':'')+' '
-        +'title="'+(yaConf?'Confirmado — desmarcar para quitar del informe':'Marcar para agregar al informe en negro')+'" '
-        +'style="flex-shrink:0;width:15px;height:15px;cursor:pointer;accent-color:#2e7d32" '
-        +'onchange="(function(chk,i){'
-          +'var inp=document.getElementById(\'le-auto-\'+i);'
-          +'var row=document.getElementById(\'le-auto-row-\'+i);'
-          +'if(chk.checked){'
-            +'inp.style.color=\'#1a1a1a\';'
-            +'row.style.background=\'#f8fff8\';'
-            +'row.style.border=\'1px solid #a5d6a7\';'
-          +'}else{'
-            +'inp.style.color=\'#c62828\';'
-            +'row.style.background=\'#fff5f5\';'
-            +'row.style.border=\'1px solid #ffcdd2\';'
-          +'}'
-        +'})(this,'+i+')">'
-      // Campo editable — color inicial según estado
-      +'<input type="text" id="le-auto-'+i+'" value="'+esc(txtMostrar)+'" placeholder="Edita o numera: 1. texto..." '
-        +'style="flex:1;min-width:0;border:none;border-bottom:1px dashed #e0e0e0;background:transparent;font-size:10px;color:'+colorInicial+';line-height:1.5;font-family:inherit;padding:2px 3px;outline:none;transition:color .2s">'
-      // Botón eliminar permanentemente
-      +'<button onclick="this.closest(\'div\').remove();" title="Eliminar este logro automático del informe (no reaparecerá)" '
-        +'style="flex-shrink:0;border:none;background:transparent;color:#ccc;cursor:pointer;font-size:13px;padding:0 3px;line-height:1" '
-        +'onmouseover="this.style.color=\'#c62828\'" onmouseout="this.style.color=\'#ccc\'">✕</button>'
-    +'</div>';
-  }).join('');
+  var autoRows = ''; // Automáticos eliminados — se construye vacío
 
   // Agregados: SIN checkbox — siempre se guardan todos, solo editables y eliminables
   var agreRows = agregados.map(function(txt,i){
@@ -10855,12 +10819,7 @@ function editarLogrosLinea(mesNum, grupoId) {
 
       // ── SECCIÓN 2: LOGROS AUTOMÁTICOS (rojo — editables, numerables)
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
-        +'<span style="font-size:9px;font-weight:800;color:#c62828;text-transform:uppercase;letter-spacing:.04em">● Logros automáticos del sistema</span>'
-        +'<span style="font-size:8px;color:var(--muted)">☑ Marca para agregar al informe · Edita o numera el texto</span>'
-      +'</div>'
-      +'<div id="le-auto-list" style="max-height:220px;overflow-y:auto;margin-bottom:12px">'
-        +(autoRows||'<div style="font-size:9px;color:var(--muted);padding:6px 8px;font-style:italic">Sin logros automáticos para este mes/línea.</div>')
-      +'</div>'
+        // Sección automáticos eliminada — solo logros manuales del equipo
 
       // Histórico colapsado
       +(histLog.length?('<details style="margin-bottom:10px"><summary style="font-size:9px;color:var(--muted);cursor:pointer">📜 Histórico ('+histLog.length+' versiones)</summary>'
@@ -10870,9 +10829,7 @@ function editarLogrosLinea(mesNum, grupoId) {
 
       // Botones
       +'<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:12px">'
-        +'<button onclick="restaurarLogrosLinea('+mesNum+',\''+grupoId+'\')" '
-          +'title="Devuelve los automáticos al texto original. Los logros del equipo NO se borran." '
-          +'style="padding:7px 14px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit">↺ Restablecer automáticos</button>'
+        +'' // Botón restablecer eliminado
         +'<div style="display:flex;gap:8px">'
           +'<button onclick="document.getElementById(\''+pid+'\').remove()" '
             +'style="padding:7px 16px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit">Cancelar</button>'
@@ -10927,40 +10884,14 @@ function guardarLogrosLinea(mesNum, grupoId) {
     });
   }
 
-  // ── AUTOMÁTICOS: solo los que tienen checkbox marcado
-  var nuevosAuto = [], nDesAuto = 0;
-  var listAuto = document.getElementById('le-auto-list');
-  if (listAuto) {
-    listAuto.querySelectorAll('input[type="text"]').forEach(function(inp) {
-      var txt = inp.value.trim();
-      if (!txt) return;
-      var chk = document.getElementById(inp.id+'-chk');
-      if (chk && chk.checked) nuevosAuto.push(txt);
-      else nDesAuto++;
-    });
-  }
+  // Automáticos eliminados — sin sección de automáticos en el modal
+  var nuevosAuto = [];
 
   // Autos no marcados se descartan silenciosamente (el usuario decidió no confirmarlos)
   // Los agregados del equipo se conservan siempre — no requieren confirmación
 
-  // ── Calcular lista negra: automáticos que el usuario eliminó (✕)
-  //    = autoItems del sistema que ya NO están en el DOM ni marcados
-  var autoTextsEnDOM = [];
-  if(listAuto) {
-    listAuto.querySelectorAll('input[type="text"]').forEach(function(inp){
-      var t=inp.value.trim(); if(t) autoTextsEnDOM.push(t.toLowerCase().substring(0,50));
-    });
-  }
-  var autoOrigTexts = (window._editLogrosCtx&&window._editLogrosCtx.autoOrigTexts)||[];
-  var listaNegraAuto = autoOrigTexts.filter(function(orig){
-    var origN = orig.toLowerCase().substring(0,50);
-    return !autoTextsEnDOM.some(function(d){ return d.substring(0,40)===origN.substring(0,40); });
-  });
-  // Mantener lista negra previa + nuevas eliminaciones
-  var listaNegraPrev = (prev.listaNegra||[]);
-  listaNegraAuto = listaNegraAuto.concat(listaNegraPrev.filter(function(p){
-    return !listaNegraAuto.some(function(n){ return n.substring(0,40)===p.substring(0,40); });
-  }));
+  // Lista negra ya no se usa — sin automáticos que ocultar
+  var listaNegraAuto = [];
 
   // Orden: AGREGADOS primero, luego AUTOMÁTICOS CONFIRMADOS
   var manualItems=nuevosAgregados.concat(nuevosAuto);
@@ -10969,7 +10900,6 @@ function guardarLogrosLinea(mesNum, grupoId) {
   _logrosEdits[editKey]={
     manualItems:manualItems,
     agregados:nuevosAgregados,
-    listaNegra:listaNegraAuto,      // automáticos eliminados: no reaparecerán
     label:label||prev.label||undefined,
     _hist:hist
   };
