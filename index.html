@@ -1755,7 +1755,15 @@ function _sharedListen(key) {
         if (key === 'ght_v2')              { loadAcompData(); renderHoy(); try{ renderAcomp(); }catch(e){} }
         if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); try{ renderRegistroForm(); }catch(e){} }
         if (key === 'ri2026_histsem')      { try{ loadHistSem(); renderRegistroForm(); }catch(e){} }
-        if (key === 'ri2026_logros_edits') { try{ _logrosEdits=JSON.parse(newVal||'{}'); }catch(e){} }
+        if (key === 'ri2026_logros_edits') { try{
+          var _remoteLg=JSON.parse(newVal||'{}');
+          // MERGE: combinar logros remotos con locales — ninguno se pierde
+          Object.keys(_remoteLg).forEach(function(k){ _logrosEdits[k]=_remoteLg[k]; });
+          // Persistir el merge en localStorage
+          try{ localStorage.setItem('ri2026_logros_edits', JSON.stringify(_logrosEdits)); }catch(e){}
+          // Repintar el informe mensual para que se vean los logros de todos
+          if(typeof renderMensual==='function') try{renderMensual();}catch(e){}
+        }catch(e){} }
         if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
       } catch(e) { /* función aún no lista */ }
       // Indicador visual de sync
@@ -10470,8 +10478,13 @@ var LOGROS_OFICIALES = {
 // Ediciones del usuario (persistentes): clave 'mesNum_grupoId' → {pct, items:[]}
 var _logrosEdits = {};
 try {
-  var _leRaw = (typeof _sharedCache!=='undefined' && _sharedCache['ri2026_logros_edits']) || localStorage.getItem('ri2026_logros_edits');
-  if (_leRaw) _logrosEdits = JSON.parse(_leRaw)||{};
+  // Cargar desde ambas fuentes y hacer MERGE para no perder logros de ningún miembro
+  var _leLocal  = localStorage.getItem('ri2026_logros_edits');
+  var _leRemote = (typeof _sharedCache!=='undefined' && _sharedCache['ri2026_logros_edits']) || null;
+  var _leMerged = {};
+  if (_leLocal)  try { var _lL=JSON.parse(_leLocal);  Object.keys(_lL).forEach(function(k){_leMerged[k]=_lL[k];}); } catch(e){}
+  if (_leRemote) try { var _lR=JSON.parse(_leRemote); Object.keys(_lR).forEach(function(k){_leMerged[k]=_lR[k];}); } catch(e){}
+  if (Object.keys(_leMerged).length) _logrosEdits = _leMerged;
   // Datos de Mayo 2026 del informe oficial — se cargan si el cliente no tiene edición propia
   var _mayo2026 = {"5_fidelizacion": {"agregados": ["Fidelización y productividad – validación de hipótesis", "Oferta Valor Colaborador – Matriz visual por empresa (49 sedes) de la OVC con datos 2026. (Detectando actividades específicas para cada uno de los componentes del modelo)", "Redes SGBC – Vinculación Colombia es Buena y Proyecto corazón", "Taller conformación comité DEI", "Cultura – Estrategia transversal incentivos productividad"], "manualItems": ["Fidelización y productividad – validación de hipótesis", "Oferta Valor Colaborador – Matriz visual por empresa (49 sedes) de la OVC con datos 2026. (Detectando actividades específicas para cada uno de los componentes del modelo)", "Redes SGBC – Vinculación Colombia es Buena y Proyecto corazón", "Taller conformación comité DEI", "Cultura – Estrategia transversal incentivos productividad"], "_hist": [{"ts": "13/06/2026 – informe oficial", "n": 5}]}, "5_analitica": {"agregados": ["Actualizar el diccionario de datos con 96 variables que hoy se pueden aplicar o se están aplicando", "Crear un flash mensual por producto con iniciadores específicos (productividad, margen, costos MO, personas equivalentes)"], "manualItems": ["Actualizar el diccionario de datos con 96 variables que hoy se pueden aplicar o se están aplicando", "Crear un flash mensual por producto con iniciadores específicos (productividad, margen, costos MO, personas equivalentes)"], "_hist": [{"ts": "13/06/2026 – informe oficial", "n": 2}]}, "5_proyectos": {"agregados": ["Migración Siembra Valor – proyecto pausado por ajustes de estructura", "Selección por gerencia regional", "Sesión de entrega novedades encontradas en el comparativo de versiones (06/05/2026)", "Envío plan de trabajo y alcance del proyecto – Catalina Galindo", "Validación de históricos portal de encuestas", "Ajuste del filtro de Género y estado civil en el reporte de Trabajadores activos", "Configuración de pruebas internas", "Revisión diaria de datos"], "manualItems": ["Migración Siembra Valor – proyecto pausado por ajustes de estructura", "Selección por gerencia regional", "Sesión de entrega novedades encontradas en el comparativo de versiones (06/05/2026)", "Envío plan de trabajo y alcance del proyecto – Catalina Galindo", "Validación de históricos portal de encuestas", "Ajuste del filtro de Género y estado civil en el reporte de Trabajadores activos", "Configuración de pruebas internas", "Revisión diaria de datos"], "_hist": [{"ts": "13/06/2026 – informe oficial", "n": 8}]}, "5_alianzas": {"agregados": ["Jornada virtual portafolio servicios: Compensar / Colsubsidio / Comfama / Cafam (individual)", "Payflow – anticipo sueldo", "Asocolflores: Contratación personas discapacidad / Comité GH y Valor Compartido", "Diseño e implementación del plan de trabajo + campañas", "Preparar briefings trimestrales para cada participación (posicionamiento y solicitudes)", "Reuniones bilaterales (min. 1 por aliado) para definir rutas de trabajo y acuerdos operativos"], "manualItems": ["Jornada virtual portafolio servicios: Compensar / Colsubsidio / Comfama / Cafam (individual)", "Payflow – anticipo sueldo", "Asocolflores: Contratación personas discapacidad / Comité GH y Valor Compartido", "Diseño e implementación del plan de trabajo + campañas", "Preparar briefings trimestrales para cada participación (posicionamiento y solicitudes)", "Reuniones bilaterales (min. 1 por aliado) para definir rutas de trabajo y acuerdos operativos"], "_hist": [{"ts": "13/06/2026 – informe oficial", "n": 6}]}, "5_fortalecimiento": {"agregados": ["Escuela de Gestión Humana: Jornada Conexión / Agilidad digital", "Inducción – Reinducción Dir GH", "Acompañamiento", "Gestionar Acta No. 5 de JUJU", "Gestionar Acta No. 4 de Woobsing"], "manualItems": ["Escuela de Gestión Humana: Jornada Conexión / Agilidad digital", "Inducción – Reinducción Dir GH", "Acompañamiento", "Gestionar Acta No. 5 de JUJU", "Gestionar Acta No. 4 de Woobsing"], "_hist": [{"ts": "13/06/2026 – informe oficial", "n": 5}]}};
   Object.keys(_mayo2026).forEach(function(k){
@@ -10494,8 +10507,24 @@ try {
 } catch(e){}
 
 function _logrosSave() {
-  try { localStorage.setItem('ri2026_logros_edits', JSON.stringify(_logrosEdits)); } catch(e){}
-  if (typeof _sharedSet === 'function') { try { _sharedSet('ri2026_logros_edits', JSON.stringify(_logrosEdits)); } catch(e){} }
+  // MERGE con los datos de los otros miembros del equipo antes de guardar
+  // Evita que el guardado de un miembro sobreescriba los logros de otro
+  var merged = {};
+  // 1. Partir del estado más reciente de Firebase (tiene logros de todos)
+  try {
+    var remoteRaw = _sharedCache['ri2026_logros_edits'] || localStorage.getItem('ri2026_logros_edits');
+    if (remoteRaw) merged = JSON.parse(remoteRaw) || {};
+  } catch(e) {}
+  // 2. Aplicar encima los cambios locales (prioridad local para las claves que este usuario editó)
+  Object.keys(_logrosEdits).forEach(function(k) {
+    merged[k] = _logrosEdits[k];
+  });
+  // 3. Actualizar _logrosEdits local con el objeto completo (para que renderMensual vea todo)
+  _logrosEdits = merged;
+  // 4. Guardar el objeto completo (con logros de todos)
+  var payload = JSON.stringify(merged);
+  try { localStorage.setItem('ri2026_logros_edits', payload); } catch(e) {}
+  if (typeof _sharedSet === 'function') { try { _sharedSet('ri2026_logros_edits', payload); } catch(e){} }
 }
 
 function renderLogrosPorLinea(mesNum, containerId, fResp) {
