@@ -1697,9 +1697,11 @@ function _fsSetStatus(state) {
 }
 
 // ── Vigilancia permanente: reconectar + vaciar pendientes ───────────
+var _lastSyncTs = Date.now(); // marca de tiempo del último contacto confirmado con el servidor
+
 window.addEventListener('online', function(){
   _fsSetStatus('retry');
-  if (!_db) _fsReconnect();
+  if (!_db) _fsReconnect(); else _fsHardReconnect();
   _fsFlushPending();
 });
 window.addEventListener('offline', function(){ _fsSetStatus('off'); });
@@ -1711,6 +1713,11 @@ setInterval(function(){
   try { if (_db.enableNetwork) _db.enableNetwork().catch(function(){}); } catch(e){}
   _fsFlushPending();
   if (Object.keys(_pendingWrites).length===0) _fsSetStatus('ok');
+  // Vigilancia de conexión "zombie": el SDK cree estar conectado (_db existe) pero
+  // hace rato no se confirma actividad real con el servidor (pasa en pestañas en
+  // segundo plano, cambios de red, VPN, o suspensión del navegador). Forzamos una
+  // reconexión dura en vez de esperar a que el usuario note que dejó de actualizar.
+  if (Date.now() - _lastSyncTs > 90000) { _fsHardReconnect(); }
 }, 15000); // el tablero nunca queda desconectado
 
 // Heartbeat de verificación: lee un doc ligero para confirmar conexión viva
@@ -1719,16 +1726,37 @@ setInterval(function(){
   try {
     _db.collection('ght_ri_2026').doc('_heartbeat')
       .set({ ts: Date.now() }, { merge: true })
-      .then(function(){ if (Object.keys(_pendingWrites).length===0) _fsSetStatus('ok'); })
+      .then(function(){ _lastSyncTs = Date.now(); if (Object.keys(_pendingWrites).length===0) _fsSetStatus('ok'); })
       .catch(function(){ _fsSetStatus('retry'); _fsScheduleRetry(); });
   } catch(e){}
 }, 45000); // heartbeat cada 45s confirma que la sesión sigue activa
+
+// ── Respaldo por sondeo (polling): además del listener en tiempo real ──
+// Los listeners onSnapshot pueden quedar "colgados" en silencio (sin lanzar
+// error) cuando el navegador suspende la pestaña, cambia de red, o hay un
+// proxy/VPN corporativo de por medio. Este sondeo relee cada clave directo
+// del servidor cada 60s y aplica cualquier cambio que el listener se haya
+// perdido — garantiza que, tarde o temprano, todos vean lo mismo aunque el
+// tiempo real falle.
+async function _fsPollFallback(){
+  if (!_db) return;
+  var huboError = false;
+  for (var i = 0; i < _SHARED_KEYS.length; i++) {
+    var k = _SHARED_KEYS[i];
+    try {
+      var snap = await _db.collection('ght_ri_2026').doc(k).get({ source: 'server' });
+      if (snap.exists && snap.data().value != null) _applyRemoteValue(k, snap.data().value);
+    } catch (e) { huboError = true; }
+  }
+  if (!huboError) { _lastSyncTs = Date.now(); if (Object.keys(_pendingWrites).length===0) _fsSetStatus('ok'); }
+}
+setInterval(_fsPollFallback, 60000);
 
 // Reconexión al volver visible la pestaña (móvil/cambio de app)
 document.addEventListener('visibilitychange', function(){
   if (document.visibilityState==='visible') {
     if (!_db) _fsReconnect();
-    else { try { if (_db.enableNetwork) _db.enableNetwork().catch(function(){}); } catch(e){} _fsFlushPending(); }
+    else { _fsHardReconnect(); }
   }
 });
 
@@ -1741,41 +1769,65 @@ window.addEventListener('beforeunload', function(){
   } catch(e){}
 });
 
+// ── Reconexión dura: cierra y vuelve a abrir todo (listeners + red) ────
+var _hardReconnecting = false;
+async function _fsHardReconnect() {
+  if (_hardReconnecting || !_db) return;
+  _hardReconnecting = true;
+  try {
+    Object.keys(_fsListeners).forEach(function(k){
+      try { _fsListeners[k](); } catch(e){}
+      delete _fsListeners[k];
+    });
+    try { if (_db.disableNetwork) await _db.disableNetwork(); } catch(e){}
+    try { if (_db.enableNetwork) await _db.enableNetwork(); } catch(e){}
+    _SHARED_KEYS.forEach(function(k){ _sharedListen(k); });
+    await _fsPollFallback(); // refresco inmediato, no esperar a que el listener confirme
+    _fsSetStatus('ok');
+  } catch(e) { console.warn('Reconexión dura falló (se reintentará):', e); }
+  _hardReconnecting = false;
+}
+
+// ── Aplicar un valor remoto (usado por el listener en tiempo real y por el sondeo) ──
+function _applyRemoteValue(key, newVal) {
+  if (newVal === _sharedCache[key]) return;
+  _sharedCache[key] = newVal;
+  _lastSyncTs = Date.now();
+  try {
+    if (key === 'ri2026v4')            { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
+    if (key === 'ght_v2')              { loadAcompData(); renderHoy(); try{ renderAcomp(); }catch(e){} }
+    if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); try{ renderRegistroForm(); }catch(e){} }
+    if (key === 'ri2026_histsem')      { try{ loadHistSem(); renderRegistroForm(); }catch(e){} }
+    if (key === 'ri2026_logros_edits') { try{
+      var _remoteLg=JSON.parse(newVal||'{}');
+      // MERGE: combinar logros remotos con locales — ninguno se pierde
+      Object.keys(_remoteLg).forEach(function(k){ _logrosEdits[k]=_remoteLg[k]; });
+      // Persistir el merge en localStorage
+      try{ localStorage.setItem('ri2026_logros_edits', JSON.stringify(_logrosEdits)); }catch(e){}
+      // Repintar el informe mensual para que se vean los logros de todos
+      if(typeof renderMensual==='function') try{renderMensual();}catch(e){}
+    }catch(e){} }
+    if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
+  } catch(e) { /* función aún no lista */ }
+  // Indicador visual de sync
+  var si = document.getElementById('sync-status');
+  if (si) {
+    si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block;animation:syncPulse .6s ease"></span> Sincronizado ✓';
+    si.style.color = '#2d5a3d';
+    setTimeout(function(){
+      si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> Datos compartidos activos';
+      si.style.color = '';
+    }, 2500);
+  }
+}
+
 // ── Listener en tiempo real para un key ────────────────────────────
 function _sharedListen(key) {
   if (!_db || _fsListeners[key]) return;
   _fsListeners[key] = _db.collection('ght_ri_2026').doc(key)
     .onSnapshot(function(doc) {
       if (!doc.exists) return;
-      var newVal = doc.data().value;
-      if (newVal === _sharedCache[key]) return;
-      _sharedCache[key] = newVal;
-      try {
-        if (key === 'ri2026v4')            { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
-        if (key === 'ght_v2')              { loadAcompData(); renderHoy(); try{ renderAcomp(); }catch(e){} }
-        if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); try{ renderRegistroForm(); }catch(e){} }
-        if (key === 'ri2026_histsem')      { try{ loadHistSem(); renderRegistroForm(); }catch(e){} }
-        if (key === 'ri2026_logros_edits') { try{
-          var _remoteLg=JSON.parse(newVal||'{}');
-          // MERGE: combinar logros remotos con locales — ninguno se pierde
-          Object.keys(_remoteLg).forEach(function(k){ _logrosEdits[k]=_remoteLg[k]; });
-          // Persistir el merge en localStorage
-          try{ localStorage.setItem('ri2026_logros_edits', JSON.stringify(_logrosEdits)); }catch(e){}
-          // Repintar el informe mensual para que se vean los logros de todos
-          if(typeof renderMensual==='function') try{renderMensual();}catch(e){}
-        }catch(e){} }
-        if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
-      } catch(e) { /* función aún no lista */ }
-      // Indicador visual de sync
-      var si = document.getElementById('sync-status');
-      if (si) {
-        si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block;animation:syncPulse .6s ease"></span> Sincronizado ✓';
-        si.style.color = '#2d5a3d';
-        setTimeout(function(){
-          si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> Datos compartidos activos';
-          si.style.color = '';
-        }, 2500);
-      }
+      _applyRemoteValue(key, doc.data().value);
     }, function(err){
       console.warn('Listener error (re-suscribiendo):', err);
       try { if (_fsListeners[key]) { _fsListeners[key](); } } catch(e2){}
@@ -1810,6 +1862,7 @@ async function initSharedStorage(callback) {
     // Detectar cuando se completa la sincronización con el servidor
     try {
       _db.onSnapshotsInSync(function(){
+        _lastSyncTs = Date.now();
         if (Object.keys(_pendingWrites).length===0) _fsSetStatus('ok');
       });
     } catch(e){}
@@ -1848,6 +1901,7 @@ async function initSharedStorage(callback) {
   }
 
   _storageReady = true;
+  _lastSyncTs = Date.now();
   if (callback) callback();
 }
 // ═══════════════════════════════════════════════════════════════════════
@@ -11801,7 +11855,11 @@ async function _debugConsultarFirestore(){
       }
     }
     // 2. Estado de conexión actual
+    var segAtras = Math.round((Date.now()-(_lastSyncTs||0))/1000);
+    var colorSync = segAtras>90 ? '#e57373' : '#4caf50';
     html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #333;color:#999">Pendientes por subir en este navegador: <b>'+Object.keys(_pendingWrites||{}).length+'</b></div>';
+    html += '<div style="color:'+colorSync+'">Última sincronización confirmada: hace <b>'+segAtras+'s</b>'+(segAtras>90?' ⚠️ (parece colgada — se forzará reconexión automática)':'')+'</div>';
+    html += '<button onclick="_fsHardReconnect().then(function(){_debugConsultarFirestore();})" style="margin-top:8px;width:100%;padding:6px;background:#333;color:#fff;border:1px solid #555;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px">⚡ Forzar reconexión dura ahora</button>';
     out.innerHTML = html;
   } catch(err) {
     out.innerHTML = '<span style="color:#e57373">⚠️ Error consultando Firestore: '+esc(String(err&&err.message||err))+'<br><span style="color:#999">Si el error menciona "permission-denied", el problema son las reglas de seguridad de Firestore.</span></span>';
