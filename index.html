@@ -1753,7 +1753,19 @@ function _sharedListen(key) {
       try {
         if (key === 'ri2026v4')            { loadData(); renderPendientes(); renderSemanal(); renderHoy(); actualizarAvanceGlobal(); }
         if (key === 'ght_v2')              { loadAcompData(); renderHoy(); try{ renderAcomp(); }catch(e){} }
-        if (key === 'ri2026_plan_edits')   { try{ planEdits=JSON.parse(newVal||'{}'); }catch(e){ planEdits={}; } renderPlan(); try{ renderRegistroForm(); }catch(e){} }
+        if (key === 'ri2026_plan_edits')   { try{
+          var _rPE=JSON.parse(newVal||'{}');
+          // MERGE remoto → local: datos remotos tienen prioridad (fuente de verdad)
+          Object.keys(_rPE).forEach(function(k){ planEdits[k]=_rPE[k]; });
+          try{ localStorage.setItem('ri2026_plan_edits', JSON.stringify(planEdits)); }catch(e){}
+          renderPlan();
+          try{ renderRegistroForm(); }catch(e){}
+          // Re-renderizar informes si están visibles
+          var _vA=document.getElementById('view-anual');
+          if(_vA&&_vA.classList.contains('active')) try{renderAnual();}catch(e){}
+          var _vM=document.getElementById('view-mensual');
+          if(_vM&&_vM.classList.contains('active')) try{renderMensual();}catch(e){}
+        }catch(e){ planEdits={}; } }
         if (key === 'ri2026_histsem')      { try{ loadHistSem(); renderRegistroForm(); }catch(e){} }
         if (key === 'ri2026_logros_edits') { try{
           var _remoteLg=JSON.parse(newVal||'{}');
@@ -1764,7 +1776,16 @@ function _sharedListen(key) {
           // Repintar el informe mensual para que se vean los logros de todos
           if(typeof renderMensual==='function') try{renderMensual();}catch(e){}
         }catch(e){} }
-        if (key === 'ri2026_ejecucion_log'){ try{ ejecucionLog=JSON.parse(newVal||'[]'); }catch(e){ ejecucionLog=[]; } }
+        if (key === 'ri2026_ejecucion_log'){ try{
+          var _rEL=JSON.parse(newVal||'[]');
+          // MERGE por id: preservar registros locales no enviados aún
+          var _idMap={};
+          ejecucionLog.forEach(function(e){ _idMap[e.id]=e; });
+          _rEL.forEach(function(e){ _idMap[e.id]=e; }); // remoto tiene prioridad
+          ejecucionLog=Object.values(_idMap);
+          try{ localStorage.setItem('ri2026_ejecucion_log', JSON.stringify(ejecucionLog)); }catch(e){}
+          try{ renderRegistroForm(); }catch(e){}
+        }catch(e){ ejecucionLog=[]; } }
       } catch(e) { /* función aún no lista */ }
       // Indicador visual de sync
       var si = document.getElementById('sync-status');
@@ -3803,6 +3824,14 @@ let planMesView='actual';  // 'ene','feb','mar','abr','may','jun','all', or 'act
 let planEdits={}; // loaded from shared storage in initSharedStorage()
 
 function savePlanEdit(k,v){
+  // MERGE: leer estado remoto actual antes de guardar (evita sobreescribir datos de otros)
+  var _remotePE={};
+  try{
+    var _rRaw=_sharedCache['ri2026_plan_edits']||localStorage.getItem('ri2026_plan_edits');
+    if(_rRaw) _remotePE=JSON.parse(_rRaw)||{};
+  }catch(e){}
+  // Aplicar solo el cambio puntual sobre el estado remoto
+  Object.keys(_remotePE).forEach(function(ek){ if(!(ek in planEdits)) planEdits[ek]=_remotePE[ek]; });
   planEdits[k]=v;
   var _planPayload=JSON.stringify(planEdits);
   try{ localStorage.setItem('ri2026_plan_edits', _planPayload); }catch(e){}
