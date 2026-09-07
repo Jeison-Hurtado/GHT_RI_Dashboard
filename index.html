@@ -353,20 +353,12 @@ tr:hover td{background:var(--bg)}
 
     <!-- ── 3. INFORMES ── -->
     <div class="nav-sec">Informes</div>
-    <div class="nav-item" onclick="showView('acta',this)"><i class="ti ti-calendar-week"></i> Semanal</div>
     <div class="nav-item" onclick="showView('mensual',this)"><i class="ti ti-report-analytics"></i> Mensual</div>
-    <div class="nav-item" onclick="showView('trimestral-q',this)"><i class="ti ti-chart-bar"></i> Trimestral (Q)</div>
-    <div class="nav-item" onclick="showView('anual',this)"><i class="ti ti-calendar-stats"></i> Anual</div>
 
     <!-- ── 4. FORTALECIMIENTO LÍDERES Y EQUIPOS ── -->
     <div class="nav-sec">Fortalecimiento Líderes y Eq.</div>
     <div class="nav-item" onclick="showView('acomp',this)"><i class="ti ti-map-pin"></i> Dashboard Visitas / Eventos</div>
 
-    <!-- ── 5. DATOS ── -->
-    <div class="nav-sec">Datos</div>
-    <div class="nav-item" onclick="exportarCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar CSV</div>
-    <div class="nav-item" onclick="document.getElementById('csv-inp').click()"><i class="ti ti-file-upload"></i> Importar CSV</div>
-    <input type="file" id="csv-inp" accept=".csv" style="display:none" onchange="procesarCSV(event)">
   </nav>
   <div class="sidebar-footer">
     Avance plan 2026<br>
@@ -1139,121 +1131,6 @@ tr:hover td{background:var(--bg)}
     <div id="ie-mensual-logros"></div>
   </div>
 
-  <!-- ══ VIEW: INFORME TRIMESTRAL ══ -->
-  <div class="view" id="view-trimestral-q">
-    <div class="topbar">
-      <div><div class="pg-title">Informe Trimestral Ejecutivo</div><div class="pg-sub">Gestión GHT · Plan Estratégico 2026</div></div>
-      <div class="topbar-actions">
-        <select class="fs" id="fq-resp" onchange="renderInformeTrimestral()" style="padding:6px 12px"><option value="">Todo el equipo</option><option>Sandra L</option><option>AV</option><option>JH</option></select>
-        <select class="fs" id="fq-quarter" onchange="renderInformeTrimestral()" style="padding:6px 12px">
-          <option value="Q1">Q1 — Ene/Feb/Mar</option>
-          <option value="Q2">Q2 — Abr/May/Jun</option>
-          <option value="Q3">Q3 — Jul/Ago/Sep</option>
-          <option value="Q4">Q4 — Oct/Nov/Dic</option>
-        </select>
-        <button class="btn btn-p" onclick="renderInformeTrimestral()"><i class="ti ti-refresh"></i> Actualizar</button>
-        <button class="btn" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="exportarInformeHTML('inf-trimestral')"><i class="ti ti-file-download"></i> HTML</button>
-      </div>
-    </div>
-    <div id="ie-trimestral"></div>
-    <div id="inf-trimestral">
-      <div style="text-align:center;color:var(--muted);padding:3rem 1rem">
-        <div style="font-size:3rem;margin-bottom:12px">📊</div>
-        <div style="font-size:15px;font-weight:600">Selecciona el trimestre para generar el informe</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ VIEW: ACTA SEMANAL ══ -->
-  <div class="view" id="view-acta">
-    <div class="topbar">
-      <div><div class="pg-title">Acta de Gestión Semanal</div><div class="pg-sub">Informe de interacción con jefatura · GHT-RI</div></div>
-      <div class="topbar-actions">
-        <select class="fs" id="fa-semana" onchange="renderActa()" style="padding:6px 12px"></select>
-        <button class="btn btn-p" onclick="renderActa()"><i class="ti ti-refresh"></i> Actualizar</button>
-        <button class="btn" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="exportarActaWord()" id="btn-word-acta"><i class="ti ti-file-word"></i> Word</button>
-      </div>
-    </div>
-    <div id="acta-ejecutiva">
-      <div style="text-align:center;color:var(--muted);padding:3rem 1rem">
-        <div style="font-size:3rem;margin-bottom:12px">📋</div>
-        <div style="font-size:15px;font-weight:600">Selecciona la semana para generar el acta</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ VIEW: INFORME ANUAL ══ -->
-  <div class="view" id="view-anual">
-    <div class="pg-header">
-      <div>
-        <div class="pg-title"><i class="ti ti-calendar-stats" style="color:var(--accent);margin-right:6px"></i>Informe Anual 2026</div>
-        <div class="pg-sub">Resumen integral del Plan Estratégico GHT · Relaciones Interinstitucionales</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="fan-resp" onchange="renderAnual()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--rl);background:var(--bg);color:var(--text)">
-          <option value="">Equipo completo</option>
-          <option value="Sandra L">Sandra L</option>
-          <option value="Andres Villamil">Andres Villamil</option>
-          <option value="Jeison Hurtado">Jeison Hurtado</option>
-        </select>
-        <select id="fan-tab" onchange="renderAnual()" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--rl);background:var(--bg);color:var(--text)">
-          <option value="">Todos los planes</option>
-          <option value="dir">Plan Directivo</option>
-          <option value="proy">Proyectos</option>
-          <option value="gh">GH Operativo</option>
-        </select>
-      </div>
-    </div>
-    <div id="ie-anual"></div>
-
-    <!-- KPIs globales -->
-    <div id="anual-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px"></div>
-
-    <!-- Avance por Quarter -->
-    <div class="card" style="margin-bottom:16px;padding:18px 20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-chart-bar" style="color:var(--accent)"></i>Avance por Quarter
-      </div>
-      <div id="anual-por-q" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
-    </div>
-
-    <!-- Avance por Línea Estratégica -->
-    <div class="card" style="margin-bottom:16px;padding:18px 20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-sitemap" style="color:var(--accent)"></i>Avance por Línea Estratégica
-      </div>
-      <div id="anual-por-linea"></div>
-    </div>
-
-    <!-- Tareas del año -->
-    <div class="card" style="margin-bottom:16px;padding:18px 20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-checklist" style="color:var(--accent)"></i>Resumen de Tareas
-      </div>
-      <div id="anual-tareas"></div>
-    </div>
-
-    <!-- Acompañamientos del año -->
-    <div class="card" style="margin-bottom:16px;padding:18px 20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-users" style="color:var(--accent)"></i>Acompañamientos / Visitas
-      </div>
-      <div id="anual-acomp-resumen"></div>
-    </div>
-
-    <!-- Tabla detalle plan por línea -->
-    <div class="card" style="margin-bottom:16px;padding:18px 20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-table" style="color:var(--accent)"></i>Detalle Plan por Actividad
-      </div>
-      <div style="overflow-x:auto">
-        <table id="anual-tabla-detalle" style="width:100%;border-collapse:collapse;font-size:12px"></table>
-      </div>
-    </div>
-  </div>
-
   <!-- ══ VIEW: SEGUIMIENTO CONSOLIDADO ══ -->
   <div class="view" id="view-seguimiento">
     <div class="topbar">
@@ -1643,7 +1520,19 @@ function _fsWrite(key, val) {
   if (!_db) { _pendingWrites[key] = val; _fsScheduleRetry(); return; }
   _db.collection('ght_ri_2026').doc(key)
     .set({ value: val, ts: Date.now() })
-    .then(function(){ delete _pendingWrites[key]; })
+    .then(function(){
+      delete _pendingWrites[key];
+      // Confirmación visual para quien acaba de guardar (el listener remoto no se dispara con los propios cambios)
+      var si = document.getElementById('sync-status');
+      if (si) {
+        si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#4caf50;display:inline-block;animation:syncPulse .6s ease"></span> Guardado y sincronizado ✓';
+        si.style.color = '#2d5a3d';
+        setTimeout(function(){
+          si.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> Datos compartidos activos';
+          si.style.color = '';
+        }, 2500);
+      }
+    })
     .catch(function(e){
       console.warn('Firestore write error (se reintentará):', e);
       _pendingWrites[key] = val;
@@ -1761,8 +1650,6 @@ function _sharedListen(key) {
           renderPlan();
           try{ renderRegistroForm(); }catch(e){}
           // Re-renderizar informes si están visibles
-          var _vA=document.getElementById('view-anual');
-          if(_vA&&_vA.classList.contains('active')) try{renderAnual();}catch(e){}
           var _vM=document.getElementById('view-mensual');
           if(_vM&&_vM.classList.contains('active')) try{renderMensual();}catch(e){}
         }catch(e){ planEdits={}; } }
@@ -2469,308 +2356,6 @@ function getSampleTasks(){
 ];
 }
 
-// ── INFORME ANUAL ─────────────────────────────────────────────────────
-function renderAnual(){
-  // Bloque ejecutivo consolidado
-  try {
-    renderInformeEjecutivoBlock({containerId:'ie-anual', periodoLabel:'Año 2026', mesesNums:[1,2,3,4,5,6,7,8,9,10,11,12], fResp:(document.getElementById('fan-resp')||{}).value||'', chartPrefix:'ieanu'});
-  } catch(e){}
-  const gR = window._globalResp || '';
-  const selResp = (document.getElementById('fan-resp')||{}).value || '';
-  const selTab  = (document.getElementById('fan-tab')||{}).value  || '';
-  // Sincronizar select con filtro global
-  const fanRespEl = document.getElementById('fan-resp');
-  if(fanRespEl && gR && !selResp){
-    const opts = Array.from(fanRespEl.options);
-    const m = opts.find(o => o.value === gR);
-    if(m) fanRespEl.value = m.value;
-  }
-  const respFilt = (document.getElementById('fan-resp')||{}).value || '';
-
-  // ── Filtrar PLAN_ROWS_FULL ───────────────────────────────────────────
-  let rows = PLAN_ROWS_FULL;
-  if(respFilt) rows = rows.filter(r => (r.responsable||'').toLowerCase().includes(respFilt.toLowerCase().replace('andres villamil','andres').replace('jeison hurtado','jeison').replace('sandra l','sandra').split(' ')[0]));
-  if(selTab)   rows = rows.filter(r => r.tab === selTab);
-
-  // ── KPIs globales (usa getPlanE para reflejar ejecución actualizada) ──
-  const totalPlan = rows.reduce((s,r)=>s+r.pTotal,0);
-  const totalEjec = rows.reduce((s,r)=>{
-    const origIdx=PLAN_ROWS_FULL.indexOf(r);
-    return s+MESES_META.reduce((ms,mm)=>{const md=r.meses[mm.k]||{e:0};return ms+getPlanE(origIdx,mm.k,md.e);},0);
-  },0);
-  const pctGlobal = totalPlan ? Math.round(totalEjec/totalPlan*100) : 0;
-  const completadas = rows.filter(r=>r.estado==='COMPLETADO').length;
-  const enProceso   = rows.filter(r=>r.estado==='EN PROCESO').length;
-  const noIniciado  = rows.filter(r=>r.estado==='NO INICIADO').length;
-  const tFilt = respFilt ? tareas.filter(t=>(t.responsable||'').toLowerCase().includes(respFilt.toLowerCase().replace('andres villamil','andres').replace('jeison hurtado','jeison').replace('sandra l','sandra').split(' ')[0])) : tareas;
-  const today = new Date().toISOString().split('T')[0];
-  const tareasVenc = tFilt.filter(t=>t.estado!=='completado'&&t.fechaVenc&&t.fechaVenc<today).length;
-
-  const kpiEl = document.getElementById('anual-kpis');
-  if(kpiEl) kpiEl.innerHTML = [
-    {lab:'Plan total',val:totalPlan,col:'var(--accent)',icon:'ti-target'},
-    {lab:'Ejecutado',val:totalEjec,col:'#2d9e5f',icon:'ti-check'},
-    {lab:'% Avance',val:pctGlobal+'%',col:'#1b5e20',icon:'ti-trending-up'},
-    {lab:'Completadas',val:completadas,col:'#2d5a3d',icon:'ti-circle-check'},
-    {lab:'En proceso',val:enProceso,col:'#5c6bc0',icon:'ti-progress'},
-    {lab:'No iniciadas',val:noIniciado,col:'#78909c',icon:'ti-clock'},
-    {lab:'Tareas activas',val:tFilt.length,col:'#f59e0b',icon:'ti-list'},
-    {lab:'Tareas vencidas',val:tareasVenc,col:'#e53935',icon:'ti-alert-circle'},
-  ].map(k=>`<div class="card" style="padding:14px 16px;border-left:3px solid ${k.col}">
-    <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
-      <i class="ti ${k.icon}" style="color:${k.col};font-size:16px"></i>
-      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text2)">${k.lab}</span>
-    </div>
-    <div style="font-size:22px;font-weight:700;color:${k.col}">${k.val}</div>
-  </div>`).join('');
-
-  // ── Por Quarter ────────────────────────────────────────────────────
-  const QUARTERS = {
-    Q1:['ENE','FEB','MAR'],
-    Q2:['ABR','MAY','JUN'],
-    Q3:['JUL','AGO','SEP'],
-    Q4:['OCT','NOV','DIC']
-  };
-  const qEl = document.getElementById('anual-por-q');
-  if(qEl){
-    const qHtml = Object.entries(QUARTERS).map(([q,meses])=>{
-      let qP=0, qE=0;
-      rows.forEach(r=>{
-        const _origIdxQ=PLAN_ROWS_FULL.indexOf(r);
-        meses.forEach(m=>{
-          if(r.meses[m]){ qP+=r.meses[m].p||0; qE+=getPlanE(_origIdxQ,m,r.meses[m].e||0); }
-        });
-      });
-      const qPct = qP ? Math.round(qE/qP*100) : 0;
-      const barColor = qPct>=80?'#2d9e5f':qPct>=50?'#f59e0b':'#e53935';
-      const qLabel = {Q1:'Ene–Mar',Q2:'Abr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dic'}[q];
-      return `<div class="card" style="padding:16px;border-top:3px solid ${barColor}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-weight:700;font-size:16px;color:var(--text)">${q}</span>
-          <span style="font-size:11px;color:var(--text2)">${qLabel}</span>
-        </div>
-        <div style="font-size:22px;font-weight:700;color:${barColor};margin-bottom:4px">${qPct}%</div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${qE} / ${qP} actividades</div>
-        <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
-          <div style="height:100%;background:${barColor};width:${Math.min(qPct,100)}%;transition:width .4s"></div>
-        </div>
-      </div>`;
-    }).join('');
-    qEl.innerHTML = qHtml;
-  }
-
-  // ── Por Línea Estratégica ──────────────────────────────────────────
-  const lineaEl = document.getElementById('anual-por-linea');
-  if(lineaEl){
-    const lineaMap = {};
-    rows.forEach(r=>{
-      if(!lineaMap[r.linea]) lineaMap[r.linea]={p:0,e:0,count:0,comp:0};
-      lineaMap[r.linea].p += r.pTotal;
-      // [FIX] Usar getPlanE para reflejar ediciones del Plan Estratégico
-      const _origIdxL=PLAN_ROWS_FULL.indexOf(r);
-      const _eTotalLive=MESES_META.reduce((s,mm)=>{const md=r.meses[mm.k]||{e:0};return s+getPlanE(_origIdxL,mm.k,md.e);},0);
-      lineaMap[r.linea].e += _eTotalLive;
-      lineaMap[r.linea].count++;
-      const _pctLive=r.pTotal?_eTotalLive/r.pTotal*100:0;
-      if(_pctLive>=100) lineaMap[r.linea].comp++;
-    });
-    const lineasSorted = Object.entries(lineaMap).sort((a,b)=>b[1].p-a[1].p);
-    lineaEl.innerHTML = lineasSorted.map(([linea,d])=>{
-      const pct = d.p ? Math.round(d.e/d.p*100) : 0;
-      const col = LINEA_COLOR[linea]||'#78909c';
-      const short = LINEA_SHORT[linea]||linea.replace(/_/g,' ');
-      const barW = Math.min(pct,100);
-      return `<div style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0;display:inline-block"></span>
-            <span style="font-size:13px;font-weight:500;color:var(--text)">${short}</span>
-            <span style="font-size:11px;color:var(--text2)">(${d.count} actividades)</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:11px;color:var(--text2)">${d.e}/${d.p}</span>
-            <span style="font-size:13px;font-weight:700;color:${col};min-width:38px;text-align:right">${pct}%</span>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden">
-          <div style="height:100%;background:${col};width:${barW}%;transition:width .4s;border-radius:4px"></div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Resumen Tareas ─────────────────────────────────────────────────
-  const tareasEl = document.getElementById('anual-tareas');
-  if(tareasEl){
-    const tComp = tFilt.filter(t=>t.estado==='completado').length;
-    const tProg = tFilt.filter(t=>t.estado==='en_progreso').length;
-    const tPend = tFilt.filter(t=>t.estado==='pendiente').length;
-    const tTotal = tFilt.length;
-    // Por línea
-    const tByLinea = {};
-    tFilt.forEach(t=>{
-      const l = t.linea||'Sin línea';
-      if(!tByLinea[l]) tByLinea[l]={total:0,comp:0};
-      tByLinea[l].total++;
-      if(t.estado==='completado') tByLinea[l].comp++;
-    });
-    tareasEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px">
-      <div style="background:var(--surface2);border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--text)">${tTotal}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">Total</div>
-      </div>
-      <div style="background:#e8f5e9;border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:#2d5a3d">${tComp}</div>
-        <div style="font-size:11px;color:#2d5a3d;margin-top:3px">Completadas</div>
-      </div>
-      <div style="background:#e8eaf6;border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:#3949ab">${tProg}</div>
-        <div style="font-size:11px;color:#3949ab;margin-top:3px">En progreso</div>
-      </div>
-      <div style="background:#fff8e1;border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:#f59e0b">${tPend}</div>
-        <div style="font-size:11px;color:#f59e0b;margin-top:3px">Pendientes</div>
-      </div>
-      <div style="background:#ffebee;border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:#e53935">${tareasVenc}</div>
-        <div style="font-size:11px;color:#e53935;margin-top:3px">Vencidas</div>
-      </div>
-    </div>
-    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Distribución por línea</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      ${Object.entries(tByLinea).sort((a,b)=>b[1].total-a[1].total).map(([l,d])=>{
-        const col = LINEA_COLOR[l]||'#78909c';
-        const short = LINEA_SHORT[l]||l;
-        const pct = d.total?Math.round(d.comp/d.total*100):0;
-        return `<div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${col};border-radius:var(--rl);padding:7px 12px;font-size:12px">
-          <span style="font-weight:600;color:var(--text)">${short}</span>
-          <span style="color:var(--text2);margin-left:6px">${d.comp}/${d.total}</span>
-          <span style="color:${col};font-weight:700;margin-left:6px">${pct}%</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-
-  // ── Acompañamientos / Visitas ──────────────────────────────────────
-  const acompEl = document.getElementById('anual-acomp-resumen');
-  if(acompEl){
-    const aFilt = respFilt
-      ? acompData.filter(a=>(a.responsable||'').toLowerCase().includes(respFilt.toLowerCase().replace('andres villamil','andres').replace('jeison hurtado','jeison').replace('sandra l','sandra').split(' ')[0]))
-      : acompData;
-    const aTotal = aFilt.length;
-    const aComp  = aFilt.filter(a=>a.estado==='completado').length;
-    // Por tipo
-    const aByTipo = {};
-    aFilt.forEach(a=>{ const t=a.tipo||'Otro'; aByTipo[t]=(aByTipo[t]||0)+1; });
-    // Por zona
-    const aByZona = {};
-    aFilt.forEach(a=>{ const z=a.zona||'Sin zona'; aByZona[z]=(aByZona[z]||0)+1; });
-    // Por mes
-    const aByMes = {};
-    aFilt.forEach(a=>{
-      if(a.fecha){ const m=a.fecha.substring(0,7); aByMes[m]=(aByMes[m]||0)+1; }
-    });
-    const mesKeys = Object.keys(aByMes).sort();
-    const mesMax  = Math.max(...Object.values(aByMes),1);
-    acompEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px">
-      <div style="background:var(--surface2);border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--accent)">${aTotal}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">Total registros</div>
-      </div>
-      <div style="background:#e8f5e9;border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:#2d5a3d">${aComp}</div>
-        <div style="font-size:11px;color:#2d5a3d;margin-top:3px">Completados</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--text)">${Object.keys(aByTipo).length}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">Tipos distintos</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:var(--rl);padding:12px 14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--text)">${Object.keys(aByZona).length}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:3px">Zonas</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Por tipo de actividad</div>
-        ${Object.entries(aByTipo).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:12px">
-            <span style="color:var(--text)">${t}</span>
-            <span style="font-weight:600;color:var(--accent)">${n}</span>
-          </div>
-          <div style="background:var(--surface2);border-radius:3px;height:5px;margin-bottom:6px;overflow:hidden">
-            <div style="height:100%;background:var(--accent);width:${Math.round(n/aTotal*100)}%"></div>
-          </div>`).join('')}
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Evolución mensual</div>
-        <div style="display:flex;align-items:flex-end;gap:4px;height:70px">
-          ${mesKeys.map(mk=>{
-            const n=aByMes[mk];
-            const h=Math.round(n/mesMax*60)+10;
-            const mes=mk.substring(5,7);
-            const mNames={'01':'Ene','02':'Feb','03':'Mar','04':'Abr','05':'May','06':'Jun','07':'Jul','08':'Ago','09':'Sep','10':'Oct','11':'Nov','12':'Dic'};
-            return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:20px">
-              <div style="font-size:9px;color:var(--accent);font-weight:600;margin-bottom:2px">${n}</div>
-              <div style="background:var(--accent);border-radius:2px 2px 0 0;width:100%;height:${h}px;opacity:.8"></div>
-              <div style="font-size:9px;color:var(--text2);margin-top:2px">${mNames[mes]||mes}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </div>`;
-  }
-
-  // ── Tabla detalle ──────────────────────────────────────────────────
-  const tablaEl = document.getElementById('anual-tabla-detalle');
-  if(tablaEl){
-    const rowsTop = rows.slice().sort((a,b)=>b.eTotal-a.eTotal||b.pTotal-a.pTotal);
-    const MESES_K=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-    const th = (txt,al='left')=>`<th style="padding:6px 8px;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;text-align:${al}">${txt}</th>`;
-    const td = (txt,al='left',sty='')=>`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;color:var(--text);text-align:${al};${sty}">${txt}</td>`;
-    let html = `<thead><tr>${th('Línea')}${th('Tipo')}${th('Aliado/Meta')}${th('Resp.')}`;
-    MESES_K.forEach(m=>html+=`${th(m,'center')}`);
-    html+=`${th('Plan','center')}${th('Ejec.','center')}${th('%','center')}${th('Estado')}</tr></thead><tbody>`;
-    rowsTop.forEach(r=>{
-      const col = LINEA_COLOR[r.linea]||'#78909c';
-      const short = LINEA_SHORT[r.linea]||r.linea;
-      const pctColor = r.pct>=80?'#2d5a3d':r.pct>=50?'#f59e0b':'#e53935';
-      html+=`<tr>`;
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:5px"></span>${short}</td>`;
-      html+=td(r.tipo||'');
-      const _aliTit=(r.aliado||r.detalle||'').replace(/"/g,'\'');
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_aliTit}">${r.aliado||'—'}</td>`;
-      html+=td(r.responsable||'—');
-      const _origIdxT=PLAN_ROWS_FULL.indexOf(r);
-      MESES_K.forEach(m=>{
-        const md=r.meses[m];
-        if(!md){ html+=td('—','center','color:var(--text2);opacity:.4'); }
-        else{
-          // [FIX] Leer ejecución desde planEdits vía getPlanE
-          const _eCell=getPlanE(_origIdxT,m,md.e||0);
-          const mpct=md.p?Math.round(_eCell/md.p*100):0;
-          const bc=mpct>=100?'#e8f5e9':mpct>0?'#fff8e1':'transparent';
-          const tc=mpct>=100?'#2d5a3d':mpct>0?'#f59e0b':'var(--text)';
-          html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;text-align:center;background:${bc};color:${tc};font-weight:500">${_eCell}/${md.p}</td>`;
-        }
-      });
-      // [FIX] Calcular eTotal y pct en vivo desde planEdits
-      const _eTotalRow=MESES_META.reduce((s,mm)=>{const md=r.meses[mm.k]||{e:0};return s+getPlanE(_origIdxT,mm.k,md.e);},0);
-      const _pctRow=r.pTotal?Math.round(_eTotalRow/r.pTotal*100):0;
-      const _estadoRow=_pctRow>=100?'COMPLETADO':_eTotalRow>0?'EN PROCESO':'NO INICIADO';
-      const pctColorRow=_pctRow>=80?'#2d5a3d':_pctRow>=50?'#f59e0b':'#e53935';
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;text-align:center;font-weight:600">${r.pTotal}</td>`;
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;text-align:center;font-weight:600;color:#2d9e5f">${_eTotalRow}</td>`;
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;text-align:center;font-weight:700;color:${pctColorRow}">${_pctRow}%</td>`;
-      const estadoCol={COMPLETADO:'#2d5a3d','EN PROCESO':'#3949ab','NO INICIADO':'#78909c'}[_estadoRow]||'#78909c';
-      html+=`<td style="padding:5px 8px;border:1px solid var(--border);font-size:11px;white-space:nowrap;color:${estadoCol};font-weight:500">${_estadoRow}</td>`;
-      html+=`</tr>`;
-    });
-    html+='</tbody>';
-    tablaEl.innerHTML=html;
-  }
-}
-
 // ── NAVIGATION ────────────────────────────────────────────────────────
 function showView(v, btn){
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
@@ -2800,9 +2385,6 @@ function showView(v, btn){
   else if(v==='pendientes') renderPendientes();
   else if(v==='acomp') renderAcomp();
   else if(v==='mensual') renderMensual();
-  else if(v==='acta') renderActa();
-  else if(v==='trimestral-q') renderInformeTrimestral();
-  else if(v==='anual') renderAnual();
   else if(v==='seguimiento'){ poblarTiposSeg(); renderSeguimiento(); }
   else if(v==='nueva'){ populateSelectors(); onLineasChange(); }
 }
@@ -2863,241 +2445,6 @@ function autoVencer(){
   tareas=tareas.map(t=>t.estado!=='Cerrada'&&t.compromiso&&t.compromiso<h?{...t,estado:'Vencida'}:t);
 }
 function linD(id,k){return(LINEAS.find(l=>l.id===id)||{short:id,color:'#888',pct:0})[k];}
-
-async function exportarActaWord() {
-  const semNum = parseInt(document.getElementById('fa-semana').value) || getISOWeek(new Date());
-  // Gather plan items for current + next weeks for vacation planning
-  const wordPlanRows=[];
-  for(let ws=semNum;ws<=semNum+3;ws++){
-    PLAN_ROWS_FULL.forEach(row=>{
-      Object.entries(row.meses||{}).forEach(([mes,mData])=>{
-        if(mData.sems&&mData.sems[String(ws)]&&(mData.sems[String(ws)].p||0)>0){
-          const sd=mData.sems[String(ws)];
-          wordPlanRows.push({semana:ws,responsable:row.responsable,
-            linea:LINEA_SHORT[row.linea]||row.linea,
-            tipo:row.tipo,detalle:(row.detalle||'').substring(0,80),
-            p:sd.p,e:sd.e,estado:row.estado});
-        }
-      });
-    });
-  }
-  const fR = (document.getElementById('fa-resp')||{}).value||window._globalResp||'';
-  const safeW = d => { try { return getISOWeek(new Date(d)) === semNum; } catch(e) { return false; } };
-  let ts = tareas.filter(t => t.semana_orig === semNum || (t.compromiso && safeW(t.compromiso)));
-  if (fR) ts = ts.filter(t => t.resp === fR);
-
-  const cerr = ts.filter(t => t.estado === 'Cerrada').length;
-  const venc = ts.filter(t => t.estado === 'Vencida').length;
-  const pend = ts.filter(t => t.estado !== 'Cerrada').length;
-  const pct  = ts.length > 0 ? Math.round(cerr / ts.length * 100) : 0;
-
-  const {
-    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign, PageOrientation
-  } = docx;
-
-  // Colors
-  const AC='2d5a3d', GR='1a6030', RD='b83232', AM='8a6000', BL='184880', PU='4a1d96';
-  const GRb='edf7f1', RDb='fdf1f1', AMb='fdf8e8', BLb='edf3fc', GYb='f5f3ee';
-
-  const bdr = (c='D0CCC5') => ({ style: BorderStyle.SINGLE, size: 4, color: c });
-  const nbdr = () => ({ style: BorderStyle.NONE, size: 0, color: 'FFFFFF' });
-  const borders = (c='D0CCC5') => ({ top: bdr(c), bottom: bdr(c), left: bdr(c), right: bdr(c) });
-  const noBorders = () => ({ top: nbdr(), bottom: nbdr(), left: nbdr(), right: nbdr() });
-
-  const T = (text, o={}) => new TextRun({ text: String(text||''), font:'Arial', size:o.size||20,
-    bold:o.bold||false, color:o.color||'000000', italics:o.italics||false });
-  const P = (children, o={}) => new Paragraph({ alignment:o.align||AlignmentType.LEFT,
-    spacing:{ before:o.before||0, after:o.after!==undefined?o.after:60 }, children });
-  const C = (children, o={}) => new TableCell({
-    width: o.w ? { size:o.w, type:WidthType.DXA } : undefined,
-    borders: o.nb ? noBorders() : borders(o.bc),
-    shading: o.fill ? { fill:o.fill, type:ShadingType.CLEAR } : undefined,
-    margins: { top:80, bottom:80, left:120, right:120 },
-    verticalAlign: VerticalAlign.TOP,
-    children: Array.isArray(children) ? children : [children]
-  });
-
-  const rC = r => r==='Sandra L'?PU : r==='AV'?BL : AM;
-  const eC = e => e==='Cerrada'?GR : e==='Vencida'?RD : e==='En proceso'?AM : BL;
-  const eBg = e => e==='Cerrada'?GRb : e==='Vencida'?RDb : e==='En proceso'?AMb : BLb;
-  const lShort = id => (LINEAS.find(l=>l.id===id)||{short:id}).short;
-  const lColor = id => (LINEAS.find(l=>l.id===id)||{color:'888888'}).color.replace('#','');
-
-  const today = new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'});
-  const equipo = fR || 'SL · AV · JH';
-
-  // ── HEADER ──
-  const headerTbl = new Table({ width:{size:13320,type:WidthType.DXA}, columnWidths:[9820,3500],
-    rows:[new TableRow({ children:[
-      C([
-        P([T('ACTA DE INTERACCIÓN SEMANAL',{bold:true,size:28,color:AC})],{after:40}),
-        P([T('GHT-RI · Plan Estratégico 2026',{size:20,color:'555555'})],{after:30}),
-        P([T('Equipo: '+equipo,{size:19,color:'444444'})],{after:20}),
-        P([T('Fecha: '+today,{size:18,color:'666666'})]),
-      ],{fill:'E8F5EC',nb:true}),
-      C([
-        P([T('SEMANA',{bold:true,size:18,color:'888888'})],{align:AlignmentType.CENTER,after:10}),
-        P([T(String(semNum),{bold:true,size:80,color:AC})],{align:AlignmentType.CENTER,after:10}),
-        P([T('2026',{size:20,color:'888888'})],{align:AlignmentType.CENTER}),
-      ],{fill:'E0F0E6',nb:true}),
-    ]})]
-  });
-
-  // ── METRICS ──
-  const mW = Math.floor(13320/5);
-  const metricsTbl = new Table({ width:{size:13320,type:WidthType.DXA}, columnWidths:[mW,mW,mW,mW,mW],
-    rows:[new TableRow({ children:[
-      C([P([T(String(ts.length),{bold:true,size:44,color:'1a1917'})],{after:0,align:AlignmentType.CENTER}),P([T('Tareas',{size:17,color:'666666'})],{align:AlignmentType.CENTER})],{fill:GYb,bc:'E0DDD6',w:mW}),
-      C([P([T(String(cerr),{bold:true,size:44,color:GR})],{after:0,align:AlignmentType.CENTER}),P([T('Cumplidas',{size:17,color:GR})],{align:AlignmentType.CENTER})],{fill:GRb,bc:'C8DDD0',w:mW}),
-      C([P([T(String(venc),{bold:true,size:44,color:RD})],{after:0,align:AlignmentType.CENTER}),P([T('Vencidas',{size:17,color:RD})],{align:AlignmentType.CENTER})],{fill:RDb,bc:'E0C8C8',w:mW}),
-      C([P([T(String(pend-venc),{bold:true,size:44,color:AM})],{after:0,align:AlignmentType.CENTER}),P([T('Pendientes',{size:17,color:AM})],{align:AlignmentType.CENTER})],{fill:AMb,bc:'DDDAC8',w:mW}),
-      C([P([T(pct+'%',{bold:true,size:44,color:AC})],{after:0,align:AlignmentType.CENTER}),P([T('Cumplimiento',{size:17,color:AC})],{align:AlignmentType.CENTER})],{fill:'E7F2EA',bc:'C8DDD0',w:mW}),
-    ]})]
-  });
-
-  // ── TASK SECTION PER LINEA ──
-  const byLinea = {};
-  ts.forEach(t => { const k=t.linea||'Sin línea'; if(!byLinea[k])byLinea[k]=[]; byLinea[k].push(t); });
-  const cols = [1400,5200,3020,900,1200,1600];
-  const totalW = 13320;
-
-  const lineaSections = [];
-  Object.entries(byLinea).forEach(([linea, tList]) => {
-    const lc = lColor(linea), ln = lShort(linea);
-    lineaSections.push(new Paragraph({
-      spacing:{before:200,after:100},
-      border:{bottom:{style:BorderStyle.SINGLE,size:8,color:lc,space:1}},
-      children:[T('■ '+ln.toUpperCase(),{bold:true,color:lc,size:20})]
-    }));
-    const headerRow = new TableRow({ tableHeader:true, children:[
-      C([P([T('ID',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[0]}),
-      C([P([T('Compromiso / Tarea',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[1]}),
-      C([P([T('Seguimiento',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[2]}),
-      C([P([T('Resp.',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[3]}),
-      C([P([T('Estado',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[4]}),
-      C([P([T('Vence',{bold:true,size:17,color:'555555'})])],{fill:'EEEBE4',w:cols[5]}),
-    ]});
-    const dataRows = tList.map(t => {
-      const rf = t.estado==='Cerrada'?'F5FAF6' : t.estado==='Vencida'?'FDF5F5' : 'FFFFFF';
-      return new TableRow({ children:[
-        C([P([T(t.id_orig||('#'+String(t.id||'').padStart(3,'0')),{size:17,color:'888888'})])],{fill:rf,w:cols[0]}),
-        C([P([T(t.desc||'',{size:18})])],{fill:rf,w:cols[1]}),
-        C([P([T(t.notas||'—',{size:17,color:t.notas?'444444':'999999',italics:!t.notas})])],{fill:rf,w:cols[2]}),
-        C([P([T(t.resp||'',{size:18,bold:true,color:rC(t.resp)})])],{fill:rf,w:cols[3]}),
-        C([P([T(t.estado||'',{size:17,bold:true,color:eC(t.estado)})])],{fill:rf,w:cols[4]}),
-        C([P([T(t.compromiso||'',{size:17,color:t.estado==='Vencida'?RD:'555555'})])],{fill:rf,w:cols[5]}),
-      ]});
-    });
-    lineaSections.push(new Table({width:{size:totalW,type:WidthType.DXA},columnWidths:cols,rows:[headerRow,...dataRows]}));
-    lineaSections.push(P([]));
-  });
-
-  // ── VENCIDAS ──
-  const vencidas = ts.filter(t=>t.estado==='Vencida');
-  const vencSection = [];
-  if (vencidas.length) {
-    vencSection.push(new Paragraph({spacing:{before:200,after:100},
-      border:{bottom:{style:BorderStyle.SINGLE,size:8,color:RD,space:1}},
-      children:[T('⚠  COMPROMISOS VENCIDOS — REQUIEREN ATENCIÓN INMEDIATA',{bold:true,color:RD,size:20})]}));
-    const vc=[1400,5000,2000,900,4020];
-    vencSection.push(new Table({width:{size:totalW,type:WidthType.DXA},columnWidths:vc,
-      rows:[
-        new TableRow({tableHeader:true,children:[
-          C([P([T('ID',{bold:true,size:17,color:'555555'})])],{fill:RDb,w:vc[0]}),
-          C([P([T('Tarea',{bold:true,size:17,color:'555555'})])],{fill:RDb,w:vc[1]}),
-          C([P([T('Fecha límite',{bold:true,size:17,color:'555555'})])],{fill:RDb,w:vc[2]}),
-          C([P([T('Resp.',{bold:true,size:17,color:'555555'})])],{fill:RDb,w:vc[3]}),
-          C([P([T('Aliado',{bold:true,size:17,color:'555555'})])],{fill:RDb,w:vc[4]}),
-        ]}),
-        ...vencidas.map(t=>new TableRow({children:[
-          C([P([T(t.id_orig||('#'+String(t.id||'').padStart(3,'0')),{size:17,color:'888888'})])],{fill:'FFF8F8',w:vc[0]}),
-          C([P([T(t.desc||'',{size:18})])],{fill:'FFF8F8',w:vc[1]}),
-          C([P([T(t.compromiso||'',{size:17,color:RD,bold:true})])],{fill:'FFF8F8',w:vc[2]}),
-          C([P([T(t.resp||'',{size:18,bold:true,color:rC(t.resp)})])],{fill:'FFF8F8',w:vc[3]}),
-          C([P([T(t.aliado||t.tipo_intervencion||'—',{size:17,italics:true,color:'666666'})])],{fill:'FFF8F8',w:vc[4]}),
-        ]}))
-      ]
-    }));
-    vencSection.push(P([]));
-  }
-
-  // ── PROXIMOS ──
-  const proximos = ts.filter(t=>t.estado!=='Cerrada'&&t.estado!=='Vencida');
-  const proxSection = [];
-  if (proximos.length) {
-    proxSection.push(new Paragraph({spacing:{before:200,after:100},
-      border:{bottom:{style:BorderStyle.SINGLE,size:8,color:BL,space:1}},
-      children:[T('COMPROMISOS PENDIENTES — PRÓXIMA SEMANA',{bold:true,color:BL,size:20})]}));
-    const pc=[1400,7000,1200,2000,1720];
-    proxSection.push(new Table({width:{size:totalW,type:WidthType.DXA},columnWidths:pc,
-      rows:[
-        new TableRow({tableHeader:true,children:[
-          C([P([T('ID',{bold:true,size:17,color:'555555'})])],{fill:BLb,w:pc[0]}),
-          C([P([T('Compromiso',{bold:true,size:17,color:'555555'})])],{fill:BLb,w:pc[1]}),
-          C([P([T('Resp.',{bold:true,size:17,color:'555555'})])],{fill:BLb,w:pc[2]}),
-          C([P([T('Vence',{bold:true,size:17,color:'555555'})])],{fill:BLb,w:pc[3]}),
-          C([P([T('Aliado',{bold:true,size:17,color:'555555'})])],{fill:BLb,w:pc[4]}),
-        ]}),
-        ...proximos.map(t=>new TableRow({children:[
-          C([P([T(t.id_orig||('#'+String(t.id||'').padStart(3,'0')),{size:17,color:'888888'})])],{fill:'F5F8FD',w:pc[0]}),
-          C([P([T(t.desc||'',{size:18})])],{fill:'F5F8FD',w:pc[1]}),
-          C([P([T(t.resp||'',{size:18,bold:true,color:rC(t.resp)})])],{fill:'F5F8FD',w:pc[2]}),
-          C([P([T(t.compromiso||'',{size:17,color:BL})])],{fill:'F5F8FD',w:pc[3]}),
-          C([P([T(t.aliado||'—',{size:17,color:'666666'})])],{fill:'F5F8FD',w:pc[4]}),
-        ]}))
-      ]
-    }));
-    proxSection.push(P([]));
-  }
-
-  // ── FIRMAS ──
-  const firmasTbl = new Table({width:{size:totalW,type:WidthType.DXA},columnWidths:[6360,600,6360],
-    rows:[new TableRow({children:[
-      C([
-        P([T('Sandra Liliana',{bold:true,size:20,color:AC})],{align:AlignmentType.CENTER}),
-        P([T('Directora GHT-RI',{size:18,color:'666666'})],{align:AlignmentType.CENTER}),
-        P([T('_________________________________',{color:'BBBBBB'})],{align:AlignmentType.CENTER}),
-      ],{fill:'FAFAF8',nb:true}),
-      C([P([T('')])],{nb:true,w:600}),
-      C([
-        P([T('Jefe Inmediato',{bold:true,size:20,color:AC})],{align:AlignmentType.CENTER}),
-        P([T('Revisado y aprobado',{size:18,color:'666666'})],{align:AlignmentType.CENTER}),
-        P([T('_________________________________',{color:'BBBBBB'})],{align:AlignmentType.CENTER}),
-      ],{fill:'FAFAF8',nb:true}),
-    ]})]
-  });
-
-  // ── BUILD ──
-  const document2 = new Document({
-    styles:{ default:{ document:{ run:{ font:'Arial', size:20 } } } },
-    sections:[{
-      properties:{page:{
-        size:{width:15840,height:12240,orientation:PageOrientation.LANDSCAPE},
-        margin:{top:720,right:720,bottom:720,left:720}
-      }},
-      children:[
-        headerTbl, P([]), metricsTbl, P([]),
-        new Paragraph({spacing:{before:200,after:80},children:[T('GESTIÓN POR LÍNEA DE INTERVENCIÓN',{bold:true,size:22,color:AC})]}),
-        ...lineaSections,
-        ...vencSection,
-        ...proxSection,
-        new Paragraph({spacing:{before:200,after:80},children:[T('FIRMAS',{bold:true,size:20,color:AC})]}),
-        firmasTbl
-      ]
-    }]
-  });
-
-  const btn = document.getElementById('btn-export-acta');
-  if(btn){btn.textContent='⏳ Generando...';btn.disabled=true;}
-  Packer.toBlob(document2).then(blob=>{
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;
-    a.download='Acta_GHT_RI_Sem'+semNum+'_2026.docx';a.click();
-    URL.revokeObjectURL(url);
-    if(btn){btn.innerHTML='<i class="ti ti-file-word"></i> ⬇ Word';btn.disabled=false;}
-  }).catch(e=>{alert('Error Word: '+e.message);if(btn){btn.innerHTML='<i class="ti ti-file-word"></i> ⬇ Word';btn.disabled=false;}});
-}
 
 // ═══════════════════════════════════════════════════════════════
 // EXPORTAR INFORME → HTML descargable
@@ -3308,9 +2655,6 @@ function setGlobalResp(resp, btn){
     else if(v==='semanal') renderSemanal();
     else if(v==='pendientes') renderPendientes();
     else if(v==='mensual') renderMensual();
-    else if(v==='acta') renderActa();
-    else if(v==='trimestral-q') renderInformeTrimestral();
-    else if(v==='anual') renderAnual();
     else if(v==='gestion') renderGestion();
     else if(v==='ejecucion') renderEjecucionPlan();
     else if(v==='hoy') renderGestionHoy();
@@ -3336,16 +2680,6 @@ function poblarMeses(){
   const hoy=new Date();
   for(let m=0;m<12;m++){const o=document.createElement('option');o.value='2026-'+(m+1).toString().padStart(2,'0');o.textContent=M[m]+' 2026';if(m===hoy.getMonth())o.selected=true;sel.appendChild(o);}
 }
-function poblarSemanas(){
-  const sel=document.getElementById('fa-semana');sel.innerHTML='';
-  const semsSet=new Set();
-  tareas.forEach(t=>{if(t.semana_orig)semsSet.add(t.semana_orig);});
-  const cur=getISOWeek(new Date());
-  for(let w=8;w<=Math.max(cur,25);w++)semsSet.add(w);
-  [...semsSet].sort((a,b)=>a-b).forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent='Semana '+w+' · 2026';sel.appendChild(o);});
-  sel.value=cur;if(!sel.value&&sel.options.length)sel.value=sel.options[sel.options.length-1].value;
-}
-
 // ── DASHBOARD: Gráfica Ejecución por Línea ─────────────────────────────
 function renderTrimestralLineas(){
   const cont=document.getElementById('trim-linea-list');
@@ -3839,12 +3173,8 @@ function savePlanEdit(k,v){
   // Recalcular banner dinámicamente sin re-renderizar toda la vista
   recalcularBanner();
   // [FIX] Sincronización reactiva: si el informe está activo, re-renderizarlo
-  const _viewAnual=document.getElementById('view-anual');
-  if(_viewAnual&&_viewAnual.classList.contains('active')) renderAnual();
   const _viewMensual=document.getElementById('view-mensual');
   if(_viewMensual&&_viewMensual.classList.contains('active')) renderMensual();
-  const _viewTrimestral=document.getElementById('view-trimestral-q');
-  if(_viewTrimestral&&_viewTrimestral.classList.contains('active')) renderInformeTrimestral();
   const _viewSemanal=document.getElementById('view-semanal');
   if(_viewSemanal&&_viewSemanal.classList.contains('active')) renderSemanal();
 }
@@ -5230,14 +4560,14 @@ function renderPlan(){
         const eVal=getPlanE(r._origIdx,mm.k,md.e);
         const eDone=eVal>0;
         const eMod=planEdits[r._origIdx+'_'+mm.k]!==undefined;
-        tbodyHtml+=`<td style="text-align:center;font-size:11px;padding:4px 5px;background:${eDone?col+'22':'transparent'};font-weight:${eDone?700:400};color:${eDone?col:'#aaa'};border-left:1px dashed #e0e0e0;cursor:pointer;${eMod?'outline:2px solid '+col+';outline-offset:-2px;border-radius:3px':''}" title="Click para editar ejecución" onclick="editPlanCell(this,${r._origIdx},'${mm.k}','tot')">${eVal||'·'}</td>`;
+        tbodyHtml+=`<td style="text-align:center;font-size:11px;padding:4px 5px;background:${eDone?col+'22':'transparent'};font-weight:${eDone?700:400};color:${eDone?col:'#aaa'};border-left:1px dashed #e0e0e0;cursor:default;${eMod?'outline:2px solid '+col+';outline-offset:-2px;border-radius:3px':''}" title="Solo lectura · se actualiza desde Ejecución del Plan">${eVal||'·'}</td>`;
         // E per sem (editable)
         mmSems.forEach(s=>{
           const sv=md.sems[String(s)]||{};const evRaw=sv.e||0;const ev=getPlanESem(r._origIdx,mm.k,s,evRaw);const pv=sv.p||0;const isNow=s===cursemana;
           const semMod=planEdits[r._origIdx+'_'+mm.k+'_'+String(s)]!==undefined;
           const bg=ev>0?col+'33':pv>0&&!ev?'#ffebee':'transparent';
           const txtColor=ev>0?col:pv>0&&!ev?'#e53935':'#ccc';
-          tbodyHtml+=`<td style="text-align:center;font-size:10px;padding:4px 3px;background:${bg};color:${txtColor};font-weight:${ev?700:400};cursor:pointer;${semMod?'outline:1px solid '+col+';outline-offset:-1px;border-radius:2px':''}" title="Click para editar" onclick="editPlanCell(this,${r._origIdx},'${mm.k}','${s}')">${ev>0?ev:pv>0?'○':''}</td>`;
+          tbodyHtml+=`<td style="text-align:center;font-size:10px;padding:4px 3px;background:${bg};color:${txtColor};font-weight:${ev?700:400};cursor:default;${semMod?'outline:1px solid '+col+';outline-offset:-1px;border-radius:2px':''}" title="Solo lectura · se actualiza desde Ejecución del Plan">${ev>0?ev:pv>0?'○':''}</td>`;
         });
       });
       tbodyHtml+='</tr>';
@@ -6520,142 +5850,6 @@ function generarInformeEjecutivo(tList,mesStr,mesNum,filtResp){
   </div>`;
   cont.innerHTML=html;
 }
-// ── ACTA SEMANAL ────────────────────────────────────────────────────
-function renderActa(){
-  const semSel=document.getElementById('fa-semana');
-  // Responsable desde el filtro global VISTA DE (Todos · SL · AV · JH)
-  const gR=window._globalResp||'';
-  const semNum=semSel?parseInt(semSel.value)||getISOWeek(new Date()):getISOWeek(new Date());
-  const mesObj=MESES_META.find(m=>m.sems.includes(semNum))||MESES_META[0];
-  const _matchR=(r)=>{
-    if(!gR) return true;
-    const s=(r||'').toLowerCase();
-    return s.includes(gR.toLowerCase().split(' ')[0])||
-      (gR==='Sandra L'&&(s.includes('sandra')||s.includes('slg')))||
-      (gR==='AV'&&(s.includes('andres')||s.includes('villamil')))||
-      (gR==='JH'&&(s.includes('jeison')||s.includes('hurtado')));
-  };
-  let tarFilt=tareas.filter(t=>{
-    const tSem=parseInt(t.semana||0);
-    const comp=t._reprog_fecha||t.compromiso||t.fechaVenc||'';
-    const byVencSem=comp?getISOWeek(new Date(comp))===semNum:false;
-    return tSem===semNum||byVencSem;
-  }).filter(t=>_matchR(t.responsable));
-  let acompFilt=acompData.filter(a=>{
-    if(!a.fecha)return false;
-    try{return getISOWeek(new Date(a.fecha))===semNum;}catch(e){return false;}
-  }).filter(a=>_matchR(a.responsable));
-  const cont=document.getElementById('acta-ejecutiva');
-  if(!cont)return;
-  buildInformeEjecutivoV2({tipo:'Semanal',periodoStr:'Semana '+semNum+' · '+mesObj.n+' 2026',resp:gR,mesesKeys:[mesObj.k],tareasF:tarFilt,acompsF:acompFilt,containerEl:cont,respFilter:gR});
-}
-function generarActaIA(tList,semNum,rangoStr){ generarActaEjecutiva(tList,semNum,rangoStr,''); }
-function generarActaEjecutiva(tList,semNum,rangoStr,filtResp,planSem,pendPrev){
-  if(!tList)tList=tareas;
-  const cont=document.getElementById('acta-ejecutiva');
-  if(!cont)return;
-  const today=new Date().toISOString().split('T')[0];
-  const planItems=planSem||[];
-  const pendItems=pendPrev||[];
-  const comp=tList.filter(t=>['completado','cerrada','Cerrada'].includes((t.estado||'').toLowerCase()));
-  const prog=tList.filter(t=>t.estado==='en_progreso');
-  const pend=tList.filter(t=>['pendiente','abierta'].includes((t.estado||'').toLowerCase()));
-  const venc=tList.filter(t=>t.estado!=='completado'&&t.fechaVenc&&t.fechaVenc<today);
-  const prox=new Date();prox.setDate(prox.getDate()+7);
-  const fechaGen=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-  const html=`
-  <div style="max-width:860px;margin:0 auto;font-family:'DM Sans',sans-serif">
-    <div style="background:linear-gradient(135deg,#1a3d28 0%,var(--accent) 100%);color:#fff;border-radius:var(--rl);padding:28px 36px;margin-bottom:20px;position:relative;overflow:hidden">
-      <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-bottom:4px">GHT · Relaciones Interinstitucionales</div>
-      <div style="font-size:22px;font-weight:800;margin-bottom:3px">Acta de Gestión Semanal</div>
-      <div style="font-size:14px;opacity:.8">Semana ${semNum||''} de 2026 · ${rangoStr||''}</div>
-      <div style="margin-top:18px;display:flex;gap:20px;flex-wrap:wrap">
-        <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;min-width:70px"><div style="font-size:24px;font-weight:700;color:#ffd54f">${tList.length}</div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">Total</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;min-width:70px"><div style="font-size:24px;font-weight:700;color:#a5d6a7">${comp.length}</div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">Completadas</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;min-width:70px"><div style="font-size:24px;font-weight:700;color:#90caf9">${prog.length}</div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">En progreso</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;min-width:70px"><div style="font-size:24px;font-weight:700;color:#ef9a9a">${venc.length}</div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">Alertas</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;min-width:70px"><div style="font-size:24px;font-weight:700;color:#fff">${GLOBAL_PCT}%</div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.06em">Plan 2026</div></div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:16px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">📅 Datos de la reunión</div>
-        <div style="font-size:12px;color:var(--text2);line-height:2"><strong>Semana:</strong> ${semNum||''} · ${rangoStr||''}<br><strong>Lugar:</strong> GHT Corp – Sala RI<br><strong>Avance plan 2026:</strong> ${GLOBAL_PCT}%</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:16px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">👥 Asistentes</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:12px">SL · Sandra Liliana García · Directora RI</div>
-          <div style="font-size:12px">JH · Jeison Hurtado · Analista Proyectos GH</div>
-          <div style="font-size:12px">AV · Andrés Villamil · Analista GHT-RI</div>
-        </div>
-      </div>
-    </div>
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#2d5a3d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">1</span>Actividades Completadas</div>
-      ${comp.length?`<div style="display:flex;flex-direction:column;gap:4px">${comp.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:#e8f5e9;border-radius:7px;border-left:3px solid #2d5a3d"><span>✓</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:#2d5a3d;font-weight:600;flex-shrink:0">${esc(t.responsable||'')}</span></div>`).join('')}</div>`:'<div style="color:var(--muted);font-size:12px;font-style:italic;padding:8px">Sin actividades completadas esta semana.</div>'}
-    </div>
-    ${prog.length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#5c6bc0;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">2</span>En Progreso</div><div style="display:flex;flex-direction:column;gap:4px">${prog.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:#e8eaf6;border-radius:7px;border-left:3px solid #5c6bc0"><span>→</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:#5c6bc0;font-weight:600;flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${formatDate(t.fechaVenc)}</span></div>`).join('')}</div></div>`:''}
-    ${pend.length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">3</span>Pendientes</div><div style="display:flex;flex-direction:column;gap:4px">${pend.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:#fff8e1;border-radius:7px;border-left:3px solid #f59e0b"><span>·</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:#f59e0b;font-weight:600;flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${formatDate(t.fechaVenc)}</span></div>`).join('')}</div></div>`:''}
-    ${venc.length?`<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:var(--rl);padding:16px 18px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#e65100;margin-bottom:10px">⚠️ Actividades Vencidas</div><div style="display:flex;flex-direction:column;gap:4px">${venc.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff8f0;border-radius:6px"><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:#e65100;flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:#e53935;font-weight:600;flex-shrink:0">Vencida: ${formatDate(t.fechaVenc)}</span></div>`).join('')}</div></div>`:''}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div style="background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--rl);padding:16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:8px">📅 Próxima Reunión</div><div style="font-size:13px;font-weight:600;color:var(--accent)">Semana ${(semNum||0)+1} de 2026</div><div style="font-size:12px;color:var(--text2);margin-top:4px">${prox.toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long'})}</div></div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:16px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">📝 Compromisos acordados</div><div style="font-size:12px;color:var(--muted);font-style:italic">Registrar en reunión</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
-      ${[{n:'Sandra Liliana García',c:'Directora RI'},{n:'Jeison Hurtado',c:'Analista Proyectos GH'},{n:'Andrés Villamil',c:'Analista GHT-RI'}].map(p=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px;text-align:center"><div style="border-bottom:1px solid var(--border);margin-bottom:8px;height:36px"></div><div style="font-size:12px;font-weight:600">${p.n}</div><div style="font-size:10px;color:var(--muted)">${p.c}</div></div>`).join('')}
-    </div>
-    ${planItems.length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="background:#e3f2fd;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">📋</span> Plan Estratégico esta semana (${planItems.length})</div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${planItems.map(p=>{const col=LINEA_COLOR[p.linea]||'var(--accent)';const short=LINEA_SHORT[p.linea]||p.linea;return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:${col}11;border-radius:6px;border-left:3px solid ${col}"><div style="flex:1;font-size:11px"><span style="font-weight:600;color:${col}">${esc(short)}</span> · <span>${esc(p.tipo)}</span>${p.detalle?' — <span style="color:#666">'+esc(p.detalle.substring(0,80))+'</span>':''}</div><span style="font-size:10px;font-weight:700;color:${p.e>=p.p?'#2e7d32':'#e65100'}">E:${p.e}/P:${p.p}</span><span style="font-size:10px;color:#888">${esc(p.responsable)}</span></div>`;}).join('')}
-      </div>
-    </div>`:''}
-    ${pendItems.length?`<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:var(--rl);padding:18px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#e65100;display:flex;align-items:center;gap:8px"><span style="background:#fff3e0;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px">⏳</span> Pendientes de semanas anteriores (${pendItems.length})</div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        ${pendItems.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border-radius:6px;border-left:3px solid #f59e0b"><div style="flex:1;font-size:11px;font-weight:600">${esc((t.titulo||t.descripcion||'').substring(0,90))}</div><span style="font-size:10px;color:#888">Sem ${t.semana}</span><span style="font-size:10px;color:#e65100">${esc(t.responsable)}</span></div>`).join('')}
-      </div>
-    </div>`:''}
-    <div style="text-align:center;font-size:10px;color:var(--muted);padding:12px;border-top:1px solid var(--border)">Generado el ${fechaGen} · GHT Corp – RI · Semana ${semNum||''} / 2026</div>
-  </div>`;
-  cont.innerHTML=html;
-}
-
-// ── INFORME TRIMESTRAL ─────────────────────────────────────────────
-function renderInformeTrimestral(){
-  // Bloque ejecutivo consolidado
-  try {
-    var _q = (document.getElementById('fq-quarter')||{}).value||'Q1';
-    var _qM = {Q1:[1,2,3],Q2:[4,5,6],Q3:[7,8,9],Q4:[10,11,12]}[_q]||[1,2,3];
-    var _qL = {Q1:'Q1 (Ene–Mar)',Q2:'Q2 (Abr–Jun)',Q3:'Q3 (Jul–Sep)',Q4:'Q4 (Oct–Dic)'}[_q]||_q;
-    renderInformeEjecutivoBlock({containerId:'ie-trimestral', periodoLabel:_qL+' 2026', mesesNums:_qM, fResp:(document.getElementById('fq-resp')||{}).value||'', chartPrefix:'ietri'});
-  } catch(e){}
-  const resp=(document.getElementById('fq-resp')||{}).value||'';
-  const q=(document.getElementById('fq-quarter')||{}).value||'Q1';
-  const qMeses=MESES_META.filter(m=>m.q===q).map(m=>m.k);
-  const qLabel={'Q1':'Enero–Marzo','Q2':'Abril–Junio','Q3':'Julio–Septiembre','Q4':'Octubre–Diciembre'}[q]||q;
-  const mesKeys=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  let tarFilt=tareas.filter(t=>{
-    const mm=t.fechaVenc?parseInt(t.fechaVenc.split('-')[1]):t.fechaInicio?parseInt(t.fechaInicio.split('-')[1]):0;
-    const mk=mm?mesKeys[mm-1]:'';
-    const bySem=qMeses.some(k=>(MESES_META.find(m=>m.k===k)||{sems:[]}).sems.includes(parseInt(t.semana||0)));
-    return qMeses.includes(mk)||bySem;
-  });
-  let acompFilt=acompData.filter(a=>{
-    if(!a.fecha)return false;
-    const mm=parseInt(a.fecha.split('-')[1]);
-    return qMeses.includes(mesKeys[mm-1]||'');
-  });
-  if(resp&&resp!=='Todo el equipo'){
-    tarFilt=tarFilt.filter(t=>(t.responsable||'').toLowerCase().includes(resp.toLowerCase()));
-    acompFilt=acompFilt.filter(a=>(a.responsable||'').toLowerCase().includes(resp.toLowerCase()));
-  }
-  const cont=document.getElementById('inf-trimestral');
-  if(!cont)return;
-  buildInformeEjecutivoV2({tipo:'Trimestral',periodoStr:q+' 2026 · '+qLabel,resp:(resp&&resp!=='Todo el equipo')?resp:'',mesesKeys:qMeses,tareasF:tarFilt,acompsF:acompFilt,containerEl:cont});
-}
-
 // ── MOTOR UNIFICADO DE INFORMES EJECUTIVOS V2 ─────────────────────
 function buildInformeEjecutivoV2(opts){
   const {tipo,periodoStr,resp,mesesKeys,tareasF,acompsF,containerEl,respFilter}=opts;
@@ -7241,20 +6435,6 @@ function eliminarTarea(id){
   renderSemanal(); renderPendientes();
 }
 
-// ── EXPORT / IMPORT ────────────────────────────────────────────────
-function exportarCSV(){
-  if(!tareas.length){ showAlert('No hay tareas para exportar','info'); return; }
-  const cols=['id','titulo','linea','responsable','estado','importancia','tipo','empresa','aliado','periodicidad','fechaInicio','fechaVenc','fechaCierre','semana','alerta','notas','descripcion'];
-  const header=cols.map(c=>'"'+c+'"').join(';');
-  const rows=tareas.map(t=>cols.map(c=>'"'+(String(t[c]!==undefined&&t[c]!==null?t[c]:'').replace(/"/g,'""'))+'"').join(';'));
-  const csv='﻿'+[header,...rows].join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='tareas_ri_2026.csv'; a.click();
-  URL.revokeObjectURL(url);
-  showAlert('CSV exportado','success');
-}
-
 function onActaUpload(input){
   if(!input.files||!input.files[0]) return;
   const f=input.files[0];
@@ -7263,30 +6443,6 @@ function onActaUpload(input){
   if(lbl) lbl.textContent+=' · 📎 '+f.name;
   input.value='';
 }
-function procesarCSV(file){
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const lines=e.target.result.replace(/^﻿/,'').split('\n');
-    if(lines.length<2){ showAlert('Archivo CSV vacío o inválido','error'); return; }
-    const header=lines[0].split(';').map(h=>h.replace(/"/g,'').trim());
-    let imported=0;
-    for(let i=1;i<lines.length;i++){
-      if(!lines[i].trim()) continue;
-      const vals=lines[i].split(';').map(v=>v.replace(/^"|"$/g,'').trim());
-      const t={}; header.forEach((h,j)=>t[h]=vals[j]||'');
-      t.id=parseInt(t.id)||nextId++;
-      t.semana=parseInt(t.semana)||getISOWeek(new Date());
-      if(t.titulo){ const idx=tareas.findIndex(x=>x.id===t.id); if(idx>-1) tareas[idx]=t; else{ tareas.push(t); imported++; } }
-    }
-    saveData();
-    renderPendientes(); renderSemanal();
-    showAlert(`${imported} tareas importadas`,'success');
-  };
-  reader.readAsText(file,'utf-8');
-}
-
-
 // ── SELECTORS POPULATION ───────────────────────────────────────────
 function populateSelectors(){
   // líneas selects (plan, semanal, pendientes, nueva tarea)
@@ -7301,12 +6457,6 @@ function populateSelectors(){
   if(semSel&&semSel.children.length<2){
     for(let w=1;w<=52;w++){const o=document.createElement('option');o.value=w;o.textContent=`Semana ${w}`;semSel.appendChild(o);}
     semSel.value=getISOWeek(new Date());
-  }
-  // semana acta (fa-semana)
-  const actaSel=document.getElementById('fa-semana');
-  if(actaSel&&actaSel.children.length<2){
-    for(let w=1;w<=52;w++){const o=document.createElement('option');o.value=w;o.textContent=`Semana ${w}`;actaSel.appendChild(o);}
-    actaSel.value=getISOWeek(new Date());
   }
   // semana nueva tarea
   const tSemSel=document.getElementById('t-semana');
@@ -7608,7 +6758,7 @@ function init(){
   renderAlerts();
   const today=new Date().toISOString().split('T')[0];
   const tfi=document.getElementById('t-fecha-inicio'); if(tfi&&!tfi.value) tfi.value=today;
-  showView('gestion');
+  showView('dashboard');
   const savedResp=localStorage.getItem('ght_resp_sel')||'';
   if(savedResp){
     window._globalResp=savedResp;
