@@ -1149,9 +1149,8 @@ tr:hover td{background:var(--bg)}
       <div class="topbar-actions">
         <select class="fs" id="fm-resp" onchange="renderMensual()" style="padding:6px 12px"><option value="">Todo el equipo</option><option>Sandra L</option><option>AV</option><option>JH</option></select>
         <select class="fs" id="mes-sel" onchange="renderMensual()" style="padding:6px 12px"></select>
-        <button class="btn btn-p" onclick="renderMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
-        <button class="btn" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
-        <button class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="exportarInformeHTML()"><i class="ti ti-file-download"></i> HTML</button>
+        <button class="btn btn-p" onclick="actualizarInformeMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
+        <button class="btn" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="forzarSyncLogros()" title="Reenvía a Firebase todos los logros guardados en este navegador (de todos los meses), por si alguno se quedó sin sincronizar"><i class="ti ti-cloud-upload"></i> Forzar sincronización</button>
       </div>
     </div>
     <div id="ie-mensual"></div>
@@ -9822,6 +9821,61 @@ function _logrosSave() {
   var payload = JSON.stringify(merged);
   try { localStorage.setItem('ri2026_logros_edits', payload); } catch(e) {}
   if (typeof _sharedSet === 'function') { try { _sharedSet('ri2026_logros_edits', payload); } catch(e){} }
+}
+
+function forzarSyncLogros() {
+  try {
+    _logrosSave();
+    if (typeof showAlert === 'function') {
+      showAlert('☁️ Reenviando a Firebase todos los logros guardados en este navegador (todos los meses)...', 'info');
+    }
+  } catch(e) {
+    if (typeof showAlert === 'function') showAlert('⚠️ No se pudo forzar la sincronización. Revisa tu conexión.', 'error');
+  }
+}
+
+// ── ACTUALIZAR INFORME MENSUAL: consulta Firebase directamente ─────────
+// (el botón anterior solo redibujaba con los datos ya cargados en memoria,
+// por eso parecía "no hacer nada" si nadie más había cambiado algo desde ESTE navegador)
+async function actualizarInformeMensual() {
+  if (typeof showAlert === 'function') showAlert('☁️ Consultando la información más reciente...', 'info');
+  try {
+    if (_db) {
+      // Tareas
+      var snapT = await _db.collection('ght_ri_2026').doc('ri2026v4').get();
+      if (snapT.exists && snapT.data().value != null) {
+        var rawT = snapT.data().value;
+        _sharedCache['ri2026v4'] = rawT;
+        try { localStorage.setItem('ri2026v4', rawT); } catch(e){}
+        var dT = JSON.parse(rawT);
+        if (dT && dT.tareas !== undefined) { tareas = Array.isArray(dT.tareas)?dT.tareas:[]; nextId = dT.nextId||nextId; }
+      }
+      // Visitas / Acompañamientos
+      var snapA = await _db.collection('ght_ri_2026').doc('ght_v2').get();
+      if (snapA.exists && snapA.data().value != null) {
+        var rawA = snapA.data().value;
+        _sharedCache['ght_v2'] = rawA;
+        try { localStorage.setItem('ght_v2', rawA); } catch(e){}
+        var dA = JSON.parse(rawA);
+        if (dA && dA.visits !== undefined) { acompData = Array.isArray(dA.visits)?dA.visits:[]; }
+      }
+      // Logros
+      var snapL = await _db.collection('ght_ri_2026').doc('ri2026_logros_edits').get();
+      if (snapL.exists && snapL.data().value != null) {
+        var rawL = snapL.data().value;
+        _sharedCache['ri2026_logros_edits'] = rawL;
+        var remoteLg = JSON.parse(rawL||'{}');
+        Object.keys(remoteLg).forEach(function(k){ _logrosEdits[k] = remoteLg[k]; });
+        try { localStorage.setItem('ri2026_logros_edits', JSON.stringify(_logrosEdits)); } catch(e){}
+      }
+    }
+    renderMensual();
+    if (typeof showAlert === 'function') showAlert('✅ Informe actualizado con la información más reciente.', 'success');
+  } catch(e) {
+    console.warn('Error actualizando informe mensual:', e);
+    renderMensual();
+    if (typeof showAlert === 'function') showAlert('⚠️ No se pudo consultar Firebase; se muestran los datos guardados en este dispositivo.', 'error');
+  }
 }
 
 function renderLogrosPorLinea(mesNum, containerId, fResp) {
