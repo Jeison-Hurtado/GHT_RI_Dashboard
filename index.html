@@ -1562,9 +1562,13 @@ function _fsWrite(key, val) {
     })
     .catch(function(e){
       console.warn('Firestore write error (se reintentará):', e);
+      var yaEstabaPendiente = _pendingWrites.hasOwnProperty(key);
       _pendingWrites[key] = val;
       _fsScheduleRetry();
       _fsSetStatus('retry');
+      if (!yaEstabaPendiente && typeof showAlert === 'function') {
+        showAlert('⚠️ No se pudo sincronizar con el equipo (guardado solo en este dispositivo). Se reintentará automáticamente.', 'error');
+      }
     });
 }
 
