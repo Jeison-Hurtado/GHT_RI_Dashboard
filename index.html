@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GHT RI 2026 · Tablero Unificado</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -19,8 +19,11 @@
    VARIABLES GLOBALES · SISTEMA UNIFICADO GHT-RI 2026
 ═══════════════════════════════════════════════════ */
 :root{
-  --accent:#007D40; --accent2:#285825; --accent3:#3d7a55;
+  --accent:#007D40; --accent2:#295825; --accent3:#48963F;
   --accent-light:#e7f2ea; --accent-mid:#c0ddc9;
+  --teal:#0A9396; --teal-bg:#e3f5f5; --teal-bd:#a8dbdb;
+  --mint:#94D2BD; --mint-bg:#eaf7f2; --mint-bd:#c3e8db;
+  --lime:#95C11F; --lime-bg:#f4f9e2; --lime-bd:#d3e79c;
   --red:#b83232; --red-bg:#fdf1f1; --red-bd:#f0b8b8;
   --orange:#b85a18; --orange-bg:#fdf4ee; --orange-bd:#f0c898;
   --amber:#8a6000; --amber-bg:#fdf8e8; --amber-bd:#ecd888;
@@ -38,7 +41,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+body{font-family:'Poppins',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
 
 /* ── LAYOUT ── */
 .app{display:flex;min-height:100vh}
@@ -343,21 +346,13 @@ tr:hover td{background:var(--bg)}
     <div class="nav-sec">Principal</div>
     <div class="nav-item" onclick="showView('dashboard',this)"><i class="ti ti-dashboard"></i> Dashboard Global</div>
     <div class="nav-item" onclick="showView('plan',this)"><i class="ti ti-target"></i> Plan estratégico 2026</div>
-    
+    <div class="nav-item" onclick="showView('mensual',this)"><i class="ti ti-report-analytics"></i> Mensual</div>
 
     <!-- ── 2. GESTIÓN ── -->
     <div class="nav-sec">Gestión</div>
-    <div class="nav-item" onclick="showView('gestion',this)"><i class="ti ti-bell-exclamation"></i> Pendientes y Alertas <span class="nav-badge" id="nb-hoy" style="background:var(--accent-light);color:var(--accent);border-color:var(--accent-mid)">0</span></div>
     <div class="nav-item" onclick="showView('ejecucion',this)"><i class="ti ti-chart-bar"></i> Ejecución del Plan</div>
-    <div class="nav-item" onclick="showGestionTab('nueva'); showView('gestion',document.querySelector('[onclick*=gestion]'))"><i class="ti ti-circle-plus"></i> Nueva tarea</div>
-
-    <!-- ── 3. INFORMES ── -->
-    <div class="nav-sec">Informes</div>
-    <div class="nav-item" onclick="showView('mensual',this)"><i class="ti ti-report-analytics"></i> Mensual</div>
-
-    <!-- ── 4. FORTALECIMIENTO LÍDERES Y EQUIPOS ── -->
-    <div class="nav-sec">Fortalecimiento Líderes y Eq.</div>
     <div class="nav-item" onclick="showView('acomp',this)"><i class="ti ti-map-pin"></i> Dashboard Visitas / Eventos</div>
+    <div class="nav-item" onclick="showView('gestion',this)"><i class="ti ti-bell-exclamation"></i> Pendientes y Alertas <span class="nav-badge" id="nb-hoy" style="background:var(--accent-light);color:var(--accent);border-color:var(--accent-mid)">0</span></div>
 
   </nav>
   <div class="sidebar-footer">
@@ -397,7 +392,7 @@ tr:hover td{background:var(--bg)}
         <span style="width:6px;height:6px;background:#95C11F;border-radius:50%;display:inline-block"></span>
         GHT Corp · Relaciones Interinstitucionales · Plan Estratégico 2026
       </div>
-      <div style="font-family:'DM Sans',sans-serif;font-size:clamp(22px,3vw,38px);font-weight:800;line-height:1.15;margin-bottom:6px">Generamos <em style="color:#95C11F;font-style:italic">oportunidades</em> que conectan</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:clamp(22px,3vw,38px);font-weight:800;line-height:1.15;margin-bottom:6px">Generamos <em style="color:#95C11F;font-style:italic">oportunidades</em> que conectan</div>
       <div style="font-size:14px;opacity:.75;max-width:520px;line-height:1.65;font-weight:300">personas, empresas y entorno, a través de alianzas, analítica y proyectos de gestión humana, para fortalecer la cultura y enriquecer la experiencia del colaborador.</div>
       <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:16px;max-width:600px">
         <div style="border-top:2px solid rgba(149,193,31,.6);padding-top:10px">
@@ -423,85 +418,105 @@ tr:hover td{background:var(--bg)}
       </div>
       <div id="dash-ctx-body" style="display:block;margin-top:0">
         <!-- Fila 1: Equipo + Líneas de intervención -->
-        <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:16px;margin-bottom:14px">
-
-          <!-- EQUIPO -->
-          <div class="card">
-            <div class="card-title" style="margin-bottom:14px"><div class="dot" style="background:var(--accent)"></div>Equipo de trabajo GHT-RI</div>
-            <div style="display:flex;flex-direction:column;gap:12px">
-              <!-- Sandra -->
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:10px;border:1px solid #c8e6c9">
-                <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1b5e20,#2e7d32);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(27,94,32,.3)">SL</div>
-                <div>
-                  <div style="font-weight:700;font-size:13px;color:#1b5e20">Sandra Liliana García Castañeda</div>
-                  <div style="font-size:11px;color:#555;margin-top:2px">Director Relaciones Interinstitucionales</div>
-                  <div style="font-size:10px;color:#1b5e20;margin-top:3px">📧 sandraliliana.garcia@ghtcorp.com</div>
-                </div>
+        <!-- Fila 1: Equipo de trabajo (ancho completo, estilo PPT) -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:14px"><div class="dot" style="background:var(--accent)"></div>Equipo de trabajo GHT-RI</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+            <!-- Sandra -->
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:10px;border:1px solid #c8e6c9">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1b5e20,#2e7d32);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(27,94,32,.3)">SL</div>
+              <div>
+                <div style="font-weight:700;font-size:13px;color:#1b5e20">Sandra Liliana García Castañeda</div>
+                <div style="font-size:11px;color:#555;margin-top:2px">Director Relaciones Interinstitucionales</div>
+                <div style="font-size:10px;color:#1b5e20;margin-top:3px">📧 sandraliliana.garcia@ghtcorp.com</div>
               </div>
-              <!-- Andrés -->
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#e3f2fd,#e8f5e9);border-radius:10px;border:1px solid #bbdefb">
-                <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#1976d2);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(21,101,192,.3)">AV</div>
-                <div>
-                  <div style="font-weight:700;font-size:13px;color:#1565c0">Andrés Villamil</div>
-                  <div style="font-size:11px;color:#555;margin-top:2px">Analista Gestión Humana</div>
-                  <div style="font-size:10px;color:#1565c0;margin-top:3px">📧 Andres.villamil@ghtcorp.com</div>
-                </div>
+            </div>
+            <!-- Andrés -->
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#e3f2fd,#e8f5e9);border-radius:10px;border:1px solid #bbdefb">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#1565c0,#1976d2);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(21,101,192,.3)">AV</div>
+              <div>
+                <div style="font-weight:700;font-size:13px;color:#1565c0">Andrés Villamil</div>
+                <div style="font-size:11px;color:#555;margin-top:2px">Analista Gestión Humana</div>
+                <div style="font-size:10px;color:#1565c0;margin-top:3px">📧 Andres.villamil@ghtcorp.com</div>
               </div>
-              <!-- Jeison -->
-              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#fff8e1,#f9fbe7);border-radius:10px;border:1px solid #ffe082">
-                <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#e65100,#f57c00);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(230,81,0,.3)">JH</div>
-                <div>
-                  <div style="font-weight:700;font-size:13px;color:#e65100">Jeison Hurtado</div>
-                  <div style="font-size:11px;color:#555;margin-top:2px">Analista de Proyectos Gestión Humana</div>
-                  <div style="font-size:10px;color:#e65100;margin-top:3px">📧 Jeison.hurtado@ghtcorp.com</div>
-                </div>
+            </div>
+            <!-- Jeison -->
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;background:linear-gradient(135deg,#fff8e1,#f9fbe7);border-radius:10px;border:1px solid #ffe082">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#e65100,#f57c00);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(230,81,0,.3)">JH</div>
+              <div>
+                <div style="font-weight:700;font-size:13px;color:#e65100">Jeison Hurtado</div>
+                <div style="font-size:11px;color:#555;margin-top:2px">Analista de Proyectos Gestión Humana</div>
+                <div style="font-size:10px;color:#e65100;margin-top:3px">📧 Jeison.hurtado@ghtcorp.com</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- LÍNEAS DE INTERVENCIÓN -->
-          <div class="card">
-            <div class="card-title" style="margin-bottom:14px"><div class="dot" style="background:var(--blue)"></div>¿Cómo generamos oportunidades desde Relaciones Interinstitucionales?</div>
-            <!-- Centro Fidelización -->
-            <div style="position:relative;display:flex;align-items:center;justify-content:center;padding:10px 0">
-              <div style="position:absolute;width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#1b5e20,#007D40);display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 4px 16px rgba(27,94,32,.35)">
-                <span style="color:#fff;font-size:11px;font-weight:800;text-align:center;line-height:1.3">Fideli-<br>zación</span>
+        <!-- Fila 2: Líneas de intervención — ancho completo, igual proporción que en el PPT -->
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-title" style="margin-bottom:18px"><div class="dot" style="background:var(--blue)"></div>¿Cómo generamos oportunidades desde Relaciones Interinstitucionales?</div>
+
+            <div style="display:grid;grid-template-columns:1fr 76px 190px 76px 1fr;grid-template-areas:'top top top top top' 'lt1 ld1 mid rd1 rt1' 'lt2 ld2 mid rd2 rt2';gap:22px 10px;align-items:center">
+
+              <!-- Nodo superior: Experiencia Colaborador -->
+              <div style="grid-area:top;text-align:center;max-width:480px;margin:0 auto">
+                <div style="width:60px;height:60px;border-radius:15px;background:linear-gradient(135deg,#b8e0cf,#8fcab0);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(143,202,176,.4);margin:0 auto 12px">
+                  <i class="ti ti-heart-handshake" style="color:#fff;font-size:24px;transform:rotate(-45deg)"></i>
+                </div>
+                <div style="font-weight:800;font-size:14px;color:#6fb896;margin-bottom:4px">Experiencia Colaborador y Marca Empleadora</div>
+                <div style="font-size:11.5px;color:#555;line-height:1.5">Fortalecemos la marca empleadora y la experiencia del colaborador a través de comunicación, escucha y beneficios, impulsando reputación, pertenencia y fidelización.</div>
               </div>
-              <!-- Cards alrededor -->
-              <div style="display:grid;grid-template-columns:1fr 110px 1fr;grid-template-rows:auto auto auto;gap:8px;width:100%">
-                <!-- Fila 1 -->
-                <div style="grid-column:2;grid-row:1;height:110px"></div><!-- espacio central top -->
-                <div style="grid-column:1;grid-row:1;background:#e3f2fd;border-radius:8px;padding:10px 12px;border-left:3px solid #1565c0">
-                  <div style="font-size:11px;font-weight:700;color:#1565c0;margin-bottom:4px">Analítica de personas</div>
-                  <div style="font-size:10px;color:#444;line-height:1.4">Transformamos datos en decisiones estratégicas, métricas, análisis y benchmarking.</div>
+
+              <!-- Analítica de personas -->
+              <div style="grid-area:lt1;text-align:right">
+                <div style="font-weight:800;font-size:13px;color:var(--teal);margin-bottom:4px">Analítica de personas</div>
+                <div style="font-size:11px;color:#555;line-height:1.5">Transformamos datos en decisiones estratégicas, integrando métricas, análisis y benchmarking para una gestión informada, cercana y orientada al negocio.</div>
+              </div>
+              <div style="grid-area:ld1;display:flex;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#12b0b3,var(--teal));transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(10,147,150,.4)">
+                  <i class="ti ti-chart-line" style="color:#fff;font-size:22px;transform:rotate(-45deg)"></i>
                 </div>
-                <div style="grid-column:3;grid-row:1;background:#e8f5e9;border-radius:8px;padding:10px 12px;border-left:3px solid #1b5e20">
-                  <div style="font-size:11px;font-weight:700;color:#1b5e20;margin-bottom:4px">Experiencia Colaborador y Marca Empleadora</div>
-                  <div style="font-size:10px;color:#444;line-height:1.4">Fortalecemos la marca empleadora a través de comunicación, escucha y beneficios.</div>
+              </div>
+
+              <!-- Centro: anillo + Fidelización -->
+              <div style="grid-area:mid;position:relative;min-height:230px;display:flex;align-items:center;justify-content:center">
+                <div style="width:190px;height:190px;border-radius:50%;border:2px solid var(--mint-bd)"></div>
+                <div style="position:absolute;font-weight:800;font-size:18px;color:var(--accent2);white-space:nowrap">Fidelización</div>
+              </div>
+
+              <!-- Desarrollo de líderes y equipos -->
+              <div style="grid-area:rd1;display:flex;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#5fa84e,var(--accent3));transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(72,150,63,.4)">
+                  <i class="ti ti-affiliate" style="color:#fff;font-size:22px;transform:rotate(-45deg)"></i>
                 </div>
-                <!-- Fila 2: espacio central con círculo -->
-                <div style="grid-column:1;grid-row:2;background:#e0f2f1;border-radius:8px;padding:10px 12px;border-left:3px solid #00695c;display:flex;align-items:center">
-                  <div>
-                    <div style="font-size:11px;font-weight:700;color:#00695c;margin-bottom:4px">Alianzas y conexión entorno</div>
-                    <div style="font-size:10px;color:#444;line-height:1.4">Alianzas estratégicas que conectan capacidades y recursos para ampliar oportunidades.</div>
-                  </div>
+              </div>
+              <div style="grid-area:rt1;text-align:left">
+                <div style="font-weight:800;font-size:13px;color:var(--accent3);margin-bottom:4px">Desarrollo de líderes y equipos</div>
+                <div style="font-size:11px;color:#555;line-height:1.5">Desarrollamos capacidades para fortalecer competencias en líderes y equipos, mediante formación y acompañamiento, potenciando su análisis y entendimiento del negocio.</div>
+              </div>
+
+              <!-- Alianzas y conexión entorno -->
+              <div style="grid-area:lt2;text-align:right">
+                <div style="font-weight:800;font-size:13px;color:var(--accent2);margin-bottom:4px">Alianzas y conexión entorno</div>
+                <div style="font-size:11px;color:#555;line-height:1.5">Construimos alianzas estratégicas que conectan capacidades y recursos, para ampliar oportunidades y generar valor compartido en las empresas y sus colaboradores.</div>
+              </div>
+              <div style="grid-area:ld2;display:flex;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#2e5e33,#1b3a1f);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(27,58,31,.4)">
+                  <i class="ti ti-world" style="color:#fff;font-size:22px;transform:rotate(-45deg)"></i>
                 </div>
-                <div style="grid-column:2;grid-row:2"></div><!-- círculo central ya posicionado como absolute -->
-                <div style="grid-column:3;grid-row:2;background:#fff3e0;border-radius:8px;padding:10px 12px;border-left:3px solid #e65100;display:flex;align-items:center">
-                  <div>
-                    <div style="font-size:11px;font-weight:700;color:#e65100;margin-bottom:4px">Desarrollo de líderes y equipos</div>
-                    <div style="font-size:10px;color:#444;line-height:1.4">Desarrollamos capacidades en líderes y equipos mediante formación y acompañamiento.</div>
-                  </div>
+              </div>
+
+              <!-- Proyectos estratégicos de impacto -->
+              <div style="grid-area:rd2;display:flex;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#b3d94e,var(--lime));transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(149,193,31,.4)">
+                  <i class="ti ti-bulb" style="color:#fff;font-size:22px;transform:rotate(-45deg)"></i>
                 </div>
-                <!-- Fila 3 -->
-                <div style="grid-column:2;grid-row:3;height:0"></div>
-                <div style="grid-column:1/4;grid-row:3;background:#ede7f6;border-radius:8px;padding:10px 12px;border-left:3px solid #6a1e6e;margin-top:6px">
-                  <div style="font-size:11px;font-weight:700;color:#6a1e6e;margin-bottom:4px">Proyectos estratégicos de impacto</div>
-                  <div style="font-size:10px;color:#444;line-height:1.4">Diseñamos e implementamos soluciones alineadas al propósito, que generan resultados y mejoran la experiencia de las personas y su entorno laboral.</div>
-                </div>
+              </div>
+              <div style="grid-area:rt2;text-align:left">
+                <div style="font-weight:800;font-size:13px;color:#7a9c1e;margin-bottom:4px">Proyectos estratégicos de impacto</div>
+                <div style="font-size:11px;color:#555;line-height:1.5">Diseñamos e implementamos soluciones alineadas al propósito, que generan resultados y mejoran la experiencia de las personas y su entorno laboral.</div>
               </div>
             </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1067,24 +1082,22 @@ tr:hover td{background:var(--bg)}
       <div class="acc-card"><div class="acc-card-hdr"><div class="acc-card-icon">🏷️</div><div class="acc-card-title">Por Tipo</div></div><div class="chart-container" style="height:170px"><canvas id="chTipo"></canvas></div><div id="a-stats-tipo"></div></div>
     </div>
 
-    <!-- Tabs -->
-    <div class="acc-tabs-nav">
-      <button class="acc-tab-btn active" onclick="switchAcompTab('lista',this)">📋 Lista</button>
-      <button class="acc-tab-btn" onclick="switchAcompTab('gantt',this)">📊 Gantt</button>
-    </div>
-    <div id="acomp-tab-lista" class="acc-tab-content active">
-      <div class="tbl-filters">
-        <input type="text" id="aTblSearch" class="fi-txt" placeholder="🔍 Buscar empresa, contacto..." oninput="renderAcompTable()">
-        <select id="aTblResp" class="fs" onchange="renderAcompTable()"><option value="">Todos los responsables</option><option value="Andres Villamil">Andres Villamil</option><option value="Jeison Hurtado">Jeison Hurtado</option><option value="Sandra Liliana Garcia">Sandra Liliana G.</option></select>
-        <select id="aTblEmpresa" class="fs" onchange="renderAcompTable()" style="min-width:180px"><option value="">Todas las empresas</option></select>
-        <select id="aTblZona" class="fs" onchange="renderAcompTable()"><option value="">Todas las zonas</option><option>ANTIOQUIA</option><option>CENTRO</option><option>NORTE</option><option>OCCIDENTE</option><option>ECUADOR</option><option>SABANA CENTRO</option><option>OTRO</option></select>
-        <select id="aTblEstado" class="fs" onchange="renderAcompTable()"><option value="">Todos los estados</option><option value="programado">Programado</option><option value="pendiente">Pendiente</option><option value="completado">Completado</option></select>
-        <span class="tbl-count" id="aTblCount"></span>
+    <!-- ── VISTA SEMANAL (semana actual + próxima semana, solo lectura) ── -->
+    <div style="margin-top:24px;background:var(--surface);border-radius:var(--rl);box-shadow:var(--sh);border:1px solid var(--border);overflow:hidden;padding:16px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff">🗓️</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">Vista Semanal</div>
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empresa</th><th>Público Obj.</th><th>Zona</th><th>Tipo</th><th>Modalidad</th><th>Estado</th><th>Notas</th><th>Acciones</th></tr></thead><tbody id="a-tbl-body"></tbody></table></div>
+      <div id="a-vista-semanal"></div>
     </div>
-    <div id="acomp-tab-gantt" class="acc-tab-content">
-      <div class="gantt-wrap" id="a-gantt"></div>
+
+    <!-- ── SEDES SIN VISITAR (ni presencial ni virtual) ── -->
+    <div style="margin-top:24px;background:var(--surface);border-radius:var(--rl);box-shadow:var(--sh);border:1px solid var(--border);overflow:hidden;padding:16px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#b83232,#e65100);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff">📍</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px">Sedes sin visitar</div>
+      </div>
+      <div id="a-sedes-sin-visitar"></div>
     </div>
 
     <!-- ── CALENDARIO VISITAS (sección fija al final) ── -->
@@ -1107,6 +1120,26 @@ tr:hover td{background:var(--bg)}
         <div id="a-cal-grid"></div>
       </div>
     </div>
+
+    <!-- Tabs -->
+    <div class="acc-tabs-nav" style="margin-top:24px">
+      <button class="acc-tab-btn active" onclick="switchAcompTab('gantt',this)">📊 Gantt</button>
+      <button class="acc-tab-btn" onclick="switchAcompTab('lista',this)">📋 Lista</button>
+    </div>
+    <div id="acomp-tab-gantt" class="acc-tab-content active">
+      <div class="gantt-wrap" id="a-gantt"></div>
+    </div>
+    <div id="acomp-tab-lista" class="acc-tab-content">
+      <div class="tbl-filters">
+        <input type="text" id="aTblSearch" class="fi-txt" placeholder="🔍 Buscar empresa, contacto..." oninput="renderAcompTable()">
+        <select id="aTblResp" class="fs" onchange="renderAcompTable()"><option value="">Todos los responsables</option><option value="Andres Villamil">Andres Villamil</option><option value="Jeison Hurtado">Jeison Hurtado</option><option value="Sandra Liliana Garcia">Sandra Liliana G.</option></select>
+        <select id="aTblEmpresa" class="fs" onchange="renderAcompTable()" style="min-width:180px"><option value="">Todas las empresas</option></select>
+        <select id="aTblZona" class="fs" onchange="renderAcompTable()"><option value="">Todas las zonas</option><option>ANTIOQUIA</option><option>CENTRO</option><option>NORTE</option><option>OCCIDENTE</option><option>ECUADOR</option><option>SABANA CENTRO</option><option>OTRO</option></select>
+        <select id="aTblEstado" class="fs" onchange="renderAcompTable()"><option value="">Todos los estados</option><option value="programado">Programado</option><option value="pendiente">Pendiente</option><option value="completado">Completado</option></select>
+        <span class="tbl-count" id="aTblCount"></span>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empresa</th><th>Público Obj.</th><th>Zona</th><th>Tipo</th><th>Modalidad</th><th>Estado</th><th>Notas</th><th>Acciones</th></tr></thead><tbody id="a-tbl-body"></tbody></table></div>
+    </div>
   </div>
 
   <!-- ══ VIEW: INFORME MENSUAL ══ -->
@@ -1122,12 +1155,6 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
     <div id="ie-mensual"></div>
-    <div id="inf-ejecutivo">
-      <div style="text-align:center;color:var(--muted);padding:3rem 1rem">
-        <div style="font-size:3rem;margin-bottom:12px">📊</div>
-        <div style="font-size:15px;font-weight:600">Selecciona un mes para generar el informe</div>
-      </div>
-    </div>
     <div id="ie-mensual-logros"></div>
   </div>
 
@@ -2540,10 +2567,10 @@ function exportarInformeHTML() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Informe Mensual GHT-RI · ${nomMes} ${anio}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#f5f3ee;color:#181715;font-size:13px;line-height:1.5}
+body{font-family:'Poppins',sans-serif;background:#f5f3ee;color:#181715;font-size:13px;line-height:1.5}
 @media print{body{background:#fff}.no-print{display:none}@page{size:A4 landscape;margin:10mm}}
 .cover{background:linear-gradient(135deg,#1a3d28 0%,#2d5a3d 60%,#3d7a55 100%);color:#fff;padding:48px 56px;display:flex;justify-content:space-between;align-items:flex-end;min-height:160px}
 .cover h1{font-size:30px;font-weight:700;line-height:1.2;margin-bottom:6px}
@@ -2646,6 +2673,13 @@ function setGlobalResp(resp, btn){
     }
   });
   renderAlerts();
+  // Sincronizar con el filtro de Responsable del Dashboard Visitas / Eventos
+  var _acompRespMap = {'':'', 'Sandra L':'Sandra Liliana Garcia', 'AV':'Andres Villamil', 'JH':'Jeison Hurtado'};
+  var _acompResp = _acompRespMap.hasOwnProperty(resp) ? _acompRespMap[resp] : '';
+  var _aFiltResp = document.getElementById('aFilt-resp');
+  if(_aFiltResp) _aFiltResp.value = _acompResp;
+  var _aTblResp = document.getElementById('aTblResp');
+  if(_aTblResp) _aTblResp.value = _acompResp;
   // re-render active view
   const active=document.querySelector('.view.active');
   if(active){
@@ -2662,6 +2696,7 @@ function setGlobalResp(resp, btn){
     else if(v==='pendientes') renderGestionPendientes();
     else if(v==='gestion') { renderGestion(); if(_gestionTabActivo==='pendientes') renderGestionPendientes(); }
     else if(v==='alertas') renderGestionAlertas();
+    else if(v==='acomp') renderAcomp();
   }
 }
 
@@ -5037,8 +5072,6 @@ function renderAcomp(){
   }
   if(filtModal) d=d.filter(v=>v.modalidad===filtModal);
   if(filtEmpresa) d=d.filter(v=>v.empresa===filtEmpresa);
-  // Sincronizar selector visual con mes activo
-  if(typeof _syncAcompMesSel==='function') _syncAcompMesSel();
   // KPIs — calculados sobre datos del mes visible
   const total=d.length, comp=d.filter(v=>v.estado==='completado').length,
         pend=d.filter(v=>v.estado==='pendiente').length, prog=d.filter(v=>v.estado==='programado').length;
@@ -5052,6 +5085,111 @@ function renderAcomp(){
   renderAcompTable();
   renderAcompCalendar(d);
   renderAcompGantt(d);
+  renderVistaSemanal();
+  renderSedesSinVisitar();
+}
+
+// ── VISTA SEMANAL (semana actual + próxima semana, solo lectura) ──────
+function renderVistaSemanal(){
+  const cont=document.getElementById('a-vista-semanal');
+  if(!cont) return;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const diaSemana=(hoy.getDay()+6)%7; // 0=lunes ... 6=domingo
+  const lunesActual=new Date(hoy); lunesActual.setDate(hoy.getDate()-diaSemana);
+  const lunesProx=new Date(lunesActual); lunesProx.setDate(lunesActual.getDate()+7);
+  const diasLbl=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  const pad=n=>String(n).padStart(2,'0');
+  const toKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const fmt=d=>`${pad(d.getDate())}/${pad(d.getMonth()+1)}`;
+
+  function buildSemana(lunes, esActual){
+    const dias=[]; for(let i=0;i<7;i++){ const dt=new Date(lunes); dt.setDate(lunes.getDate()+i); dias.push(dt); }
+    const headColor = esActual ? 'var(--accent)' : 'var(--amber)';
+    let heads='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+    let cells='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px">';
+    let totalVisitas=0; const sedes=[];
+    dias.forEach((dt,i)=>{
+      const key=toKey(dt);
+      const esFinde=i>=5;
+      const esHoy=key===toKey(hoy);
+      const visitas=acompData.filter(v=>v.fecha===key);
+      totalVisitas+=visitas.length;
+      const bg=esFinde?'var(--surface2)':headColor;
+      const fg=esFinde?'var(--text3)':'#fff';
+      const headRing=esHoy?';box-shadow:0 0 0 2px var(--text) inset;position:relative':'';
+      heads+=`<div style="text-align:center;font-size:10px;font-weight:800;padding:4px 2px;border-radius:6px;background:${bg};color:${fg}${headRing}">${diasLbl[i]}<br>${pad(dt.getDate())}${esHoy?'<br><span style="font-size:8px;letter-spacing:.5px">● HOY</span>':''}</div>`;
+      const cellRing=esHoy?';box-shadow:0 0 0 2px var(--accent) inset':'';
+      cells+=`<div style="min-height:44px;background:var(--surface2);border-radius:6px;padding:3px;display:flex;flex-direction:column;gap:2px${cellRing}">`;
+      visitas.forEach(v=>{
+        sedes.push(v.empresa||'?');
+        const icon=v.modalidad==='presencial'?'🏢':'💻';
+        const respShort=v.responsable?esc(v.responsable.split(' ')[0]):'';
+        const tooltipParts=[v.empresa||'',v.responsable||'',v.tema||''].filter(Boolean).join(' · ');
+        cells+=`<div style="font-size:9px;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:3px;padding:3px 4px;overflow:hidden" title="${esc(tooltipParts)}">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${icon} ${esc(v.empresa||'?')}</div>
+          ${respShort?`<div style="font-size:8px;font-weight:600;color:var(--accent2);opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">👤 ${respShort}</div>`:''}
+          ${v.tema?`<div style="font-size:7.5px;font-weight:400;color:var(--text2);line-height:1.25;margin-top:1px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(v.tema)}</div>`:''}
+        </div>`;
+      });
+      cells+='</div>';
+    });
+    heads+='</div>'; cells+='</div>';
+    const resumen = totalVisitas
+      ? `📊 ${totalVisitas} visita${totalVisitas===1?'':'s'} programada${totalVisitas===1?'':'s'} · ${sedes.join(', ')}`
+      : `📊 0 visitas programadas — Sin visitas programadas`;
+    return heads+cells+`<div style="font-size:11px;color:var(--text2);margin-top:5px">${resumen}</div>`;
+  }
+
+  const finActual=new Date(lunesActual); finActual.setDate(lunesActual.getDate()+6);
+  const finProx=new Date(lunesProx); finProx.setDate(lunesProx.getDate()+6);
+
+  cont.innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:6px">▶ SEMANA ACTUAL · ${fmt(lunesActual)} al ${fmt(finActual)}</div>
+      ${buildSemana(lunesActual,true)}
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:800;color:var(--amber);margin-bottom:6px">▶ PRÓXIMA SEMANA · ${fmt(lunesProx)} al ${fmt(finProx)}</div>
+      ${buildSemana(lunesProx,false)}
+    </div>
+  `;
+}
+
+// ── SEDES SIN VISITAR (ni presencial ni virtual) ───────────────────────
+function renderSedesSinVisitar(){
+  const cont=document.getElementById('a-sedes-sin-visitar');
+  if(!cont) return;
+  const filtResp=document.getElementById('aFilt-resp')?.value||'';
+  let dataFiltrada=acompData;
+  if(filtResp){
+    var _frLow=filtResp.toLowerCase().trim();
+    dataFiltrada=acompData.filter(v=>{
+      var rLow=(v.responsable||'').toLowerCase();
+      return rLow===_frLow || rLow.includes(_frLow) || _frLow.includes(rLow.split(' ')[0]);
+    });
+  }
+  const visitadas=new Set(dataFiltrada.map(v=>v.empresa).filter(Boolean));
+  const sinVisitar=EMPRESAS.filter(e=>!visitadas.has(e.id));
+  const total=EMPRESAS.length;
+  const pct=total?Math.round((total-sinVisitar.length)/total*100):0;
+  const quien=filtResp?` por <strong>${esc(filtResp)}</strong>`:'';
+  let html=`<div style="font-size:11px;color:var(--text2);margin-bottom:12px">📍 <strong style="color:${sinVisitar.length?'#b83232':'var(--accent)'}">${sinVisitar.length}</strong> de <strong>${total}</strong> sedes sin ninguna visita registrada${quien} (presencial o virtual) · <strong style="color:var(--accent)">${pct}%</strong> de cobertura</div>`;
+  if(sinVisitar.length===0){
+    html+=`<div style="text-align:center;color:var(--muted);padding:24px;font-size:12px">✅ Todas las sedes ya tienen al menos una visita registrada${quien}.</div>`;
+  } else {
+    html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">`;
+    sinVisitar.forEach(e=>{
+      html+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px" title="${esc(e.nombre||'')}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+          <span style="font-weight:800;font-size:11px;color:var(--accent)">${esc(e.id||'')}</span>
+          <span style="font-size:8.5px;background:var(--accent-light);color:var(--accent2);padding:1px 6px;border-radius:8px;font-weight:700;white-space:nowrap">${esc(e.zona||'—')}</span>
+        </div>
+        <div style="font-size:9.5px;color:var(--text2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nombre||'')}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  cont.innerHTML=html;
 }
 
 function renderAcompCharts(d){
@@ -5244,25 +5382,26 @@ function renderAcompCalendar(d){
     const hasEvents=vList.length>0;
     const allComp=hasEvents&&vList.every(v=>v.estado==='completado');
 
-    let cellStyle=`min-height:110px;border:1px solid ${hasEvents?'#1e88e5':isWknd?'#f0f0f0':'#e0ead8'};border-radius:8px;padding:4px;cursor:pointer;transition:all .2s;background:${allComp?'#c8e6c9':hasEvents?'#e3f2fd':isWknd?'#fafafa':'#f9fdf7'};display:flex;flex-direction:column;overflow-y:auto`;
+    let cellStyle=`min-height:110px;border:1px solid ${hasEvents?'#1e88e5':isWknd?'#f0f0f0':'#e0ead8'};border-radius:8px;padding:4px;cursor:pointer;transition:all .2s;background:${allComp?'#c8e6c9':hasEvents?'#e3f2fd':isWknd?'#fafafa':'#f9fdf7'};display:flex;flex-direction:column`;
     if(isToday) cellStyle+=`;outline:2px solid #1b5e20;outline-offset:-1px`;
 
     html+=`<div style="${cellStyle}" onclick="openAcompModal('${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}')">`;
     // Número del día
+    const countBadge = vList.length>3?`<span style="font-size:8px;font-weight:700;color:#fff;background:#1e88e5;border-radius:8px;padding:1px 5px;margin-left:4px">${vList.length} visitas</span>`:'';
     if(isToday){
-      html+=`<div style="width:20px;height:20px;border-radius:50%;background:#1b5e20;color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-bottom:3px">${day}</div>`;
+      html+=`<div style="display:flex;align-items:center;margin-bottom:3px"><div style="width:20px;height:20px;border-radius:50%;background:#1b5e20;color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${day}</div>${countBadge}</div>`;
     } else {
-      html+=`<div style="font-size:11px;font-weight:700;margin-bottom:3px;color:${isWknd?'#bbb':'#1b5e20'}">${day}</div>`;
+      html+=`<div style="display:flex;align-items:center;margin-bottom:3px"><span style="font-size:11px;font-weight:700;color:${isWknd?'#bbb':'#1b5e20'}">${day}</span>${countBadge}</div>`;
     }
-    // Chips de visitas (máx 3, luego "+N más")
-    vList.slice(0,3).forEach(v=>{
+    // Chips de visitas (todas — la casilla hace scroll si no caben)
+    vList.forEach(v=>{
       const bgColor=colorMap[v.responsable]||'#607d8b';
       const estado=estIcon[v.estado]||'?';
       const vComp=v.estado==='completado';
       // Estado: borde e ícono — color SIEMPRE del responsable
       const chipBorder = vComp ? '2px solid rgba(255,255,255,0.6)' : (v.estado==='programado'?'2px dashed rgba(255,255,255,0.5)':'2px solid rgba(255,255,255,0.3)');
       const chipOpacity = vComp ? '1' : (v.estado==='programado'?'0.9':'0.85');
-      html+=`<div style="font-size:9px;padding:2px 4px;border-radius:3px;margin:1px 0;background:${bgColor};color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s;border:${chipBorder};opacity:${chipOpacity}" title="${v.responsable} · ${v.estado} — click para editar">
+      html+=`<div style="font-size:9px;padding:2px 4px;border-radius:3px;margin:1px 0;background:${bgColor};color:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s;border:${chipBorder};opacity:${chipOpacity};flex-shrink:0" title="${v.responsable} · ${v.estado} — click para editar">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="flex:1;overflow:hidden" onclick="event.stopPropagation();openAcompModal(${v.id})">
             <div style="font-size:8px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${vComp?'text-decoration:line-through':''}">${esc(v.empresa||'?')}</div>
@@ -5273,9 +5412,6 @@ function renderAcompCalendar(d){
         </div>
       </div>`;
     });
-    if(vList.length>3){
-      html+=`<div style="font-size:9px;color:#1b5e20;font-weight:600;text-align:center;margin-top:2px">+${vList.length-3} más</div>`;
-    }
     html+=`</div>`;
   }
   html+=`</div>`;
@@ -5728,17 +5864,14 @@ function renderMensual(){
     var _mLab = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][_mSel]||'';
     renderInformeEjecutivoBlock({containerId:'ie-mensual', periodoLabel:_mLab+' 2026', mesesNums:[_mSel], fResp:(document.getElementById('fm-resp')||{}).value||'', chartPrefix:'iemen'});
     // Resumen de logros por línea de intervención (formato lámina mensual)
-    // Posicionado POR ENCIMA de las Alertas de desviación dentro del bloque ejecutivo
+    // Posicionado POR ENCIMA de las gráficas dentro del bloque ejecutivo
     var _ieCont = document.getElementById('ie-mensual');
     var _fmR = (document.getElementById('fm-resp')||{}).value||'';
     if (_ieCont) {
-      var _alertEl = null;
-      _ieCont.querySelectorAll(':scope > div').forEach(function(dv){
-        if (!_alertEl && dv.textContent.indexOf('Alertas de desviación') > -1) _alertEl = dv;
-      });
+      var _chartsEl = _ieCont.querySelector('.ie-charts-grid');
       var _slot = document.createElement('div');
       _slot.id = 'ie-mensual-logros-top';
-      if (_alertEl) _ieCont.insertBefore(_slot, _alertEl);
+      if (_chartsEl) _ieCont.insertBefore(_slot, _chartsEl);
       else _ieCont.appendChild(_slot);
       var _oldL = document.getElementById('ie-mensual-logros');
       if (_oldL) _oldL.innerHTML = '';
@@ -5747,26 +5880,6 @@ function renderMensual(){
       renderLogrosPorLinea(_mSel, 'ie-mensual-logros', _fmR);
     }
   } catch(e){}
-  const filtResp=document.getElementById('fm-resp')?.value||'';
-  const mesSel=document.getElementById('mes-sel');
-  const mesNum=mesSel?parseInt(mesSel.value)||new Date().getMonth()+1:new Date().getMonth()+1;
-  const mesNames=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const mesKeys=['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  const mesStr=mesNames[mesNum]||'';
-  const mesKey=mesKeys[mesNum]||'ENE';
-  const semToMes=[0,1,1,1,2,2,2,2,3,3,3,3,4,4,4,5,5,5,5,6,6,6,7,7,7,7,8,8,8,9,9,9,9,10,10,10,11,11,11,11,12,12,12,12,12,12,12,12,12,12,12,12,12];
-  let tList=tareas.filter(t=>{
-    const byVenc=t.fechaVenc&&parseInt(t.fechaVenc.split('-')[1])===mesNum;
-    const byInicio=t.fechaInicio&&parseInt(t.fechaInicio.split('-')[1])===mesNum;
-    const bySem=t.semana&&semToMes[parseInt(t.semana)]===mesNum;
-    return byVenc||byInicio||bySem;
-  });
-  if(filtResp&&filtResp!=='Todo el equipo') tList=tList.filter(t=>(t.responsable||'').includes(filtResp));
-  const aList=acompData.filter(a=>a.fecha&&parseInt(a.fecha.split('-')[1])===mesNum);
-  const filtAList=(filtResp&&filtResp!=='Todo el equipo')?aList.filter(a=>(a.responsable||'').includes(filtResp)):aList;
-  const cont=document.getElementById('inf-ejecutivo');
-  if(!cont)return;
-  buildInformeEjecutivoV2({tipo:'Mensual',periodoStr:mesStr+' 2026',resp:(filtResp&&filtResp!=='Todo el equipo')?filtResp:'',mesesKeys:[mesKey],tareasF:tList,acompsF:filtAList,containerEl:cont});
 }
 function generarInforme(tList,mesStr){generarInformeEjecutivo(tList,mesStr,0,'');}
 function generarInformeEjecutivo(tList,mesStr,mesNum,filtResp){
@@ -6754,6 +6867,7 @@ function init(){
   loadHistSem(); // restaurar histórico de ejecución semanal registrado
   autoVencer();
   loadAcompData();
+  if(typeof _syncAcompMesSel==='function') _syncAcompMesSel();
   populateSelectors();
   renderAlerts();
   const today=new Date().toISOString().split('T')[0];
