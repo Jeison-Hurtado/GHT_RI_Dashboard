@@ -6,7 +6,6 @@
 <title>GHT RI 2026 · Tablero Unificado</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -34,6 +33,7 @@
   --bg:#f5f3ee; --surface:#fff; --surface2:#edeae2;
   --border:rgba(0,0,0,.08); --border-med:rgba(0,0,0,.14);
   --text:#181715; --text2:#696660; --text3:#9b9890;
+  --danger:#b83232; --muted:#9b9890; --text-sec:#696660;
   --r:8px; --rl:12px;
   --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
   --shm:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
@@ -364,8 +364,11 @@ tr:hover td{background:var(--bg)}
         <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
         Datos compartidos activos
       </div>
-      <button onclick="location.reload()" style="margin-top:6px;width:100%;padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid var(--border-med);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:inherit">
-        ↻ Recargar datos del equipo
+      <button onclick="actualizarTodo()" style="margin-top:6px;width:100%;padding:5px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--accent-mid);background:var(--accent);color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;justify-content:center">
+        <i class="ti ti-refresh" style="font-size:13px"></i> Actualizar
+      </button>
+      <button onclick="sincronizarTodo()" style="margin-top:4px;width:100%;padding:5px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--green-bd);background:var(--green);color:#fff;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;justify-content:center" title="Paso 1: Actualizar · Paso 2: Forzar sincronización">
+        <i class="ti ti-cloud-upload" style="font-size:13px"></i> Forzar sincronización
       </button>
     </div>
   </div>
@@ -1066,7 +1069,12 @@ tr:hover td{background:var(--bg)}
       <datalist id="aListResp"></datalist>
       <select class="fs" id="aFilt-zona" onchange="renderAcomp()"><option value="">Zona</option><option value="CENTRO">Centro</option><option value="NORTE">Norte</option><option value="OCCIDENTE">Occidente</option><option value="ANTIOQUIA">Antioquia</option><option value="ECUADOR">Ecuador</option><option value="SABANA CENTRO">Sabana Centro</option><option value="USA">USA</option><option value="OTRO">Otro</option></select>
       <select class="fs" id="aFilt-empresa" onchange="renderAcomp()" style="min-width:180px"><option value="">Todas las empresas</option></select>
-      <select class="fs" id="aFilt-mes" onchange="renderAcomp()"><option value="">Todos los meses</option><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <select class="fs" id="aFilt-mes" onchange="aFiltMesChanged()"><option value="">Todos los meses</option><option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+      <span class="fbl" style="margin-left:4px">Desde</span>
+      <input class="fs" type="date" id="aFilt-desde" oninput="aFiltDateChanged()" style="padding:4px 8px;font-size:12px;cursor:pointer">
+      <span class="fbl">Hasta</span>
+      <input class="fs" type="date" id="aFilt-hasta" oninput="aFiltDateChanged()" style="padding:4px 8px;font-size:12px;cursor:pointer">
+      <button class="btn btn-sm" id="aFilt-fecha-clear" onclick="aFiltFechaLimpiar()" style="display:none" title="Limpiar rango de fecha">✕ Fechas</button>
     </div>
 
     <!-- Charts row -->
@@ -1149,8 +1157,6 @@ tr:hover td{background:var(--bg)}
       <div class="topbar-actions">
         <select class="fs" id="fm-resp" onchange="renderMensual()" style="padding:6px 12px"><option value="">Todo el equipo</option><option>Sandra L</option><option>AV</option><option>JH</option></select>
         <select class="fs" id="mes-sel" onchange="renderMensual()" style="padding:6px 12px"></select>
-        <button class="btn btn-p" onclick="actualizarInformeMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
-        <button class="btn" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="forzarSyncLogros()" title="Reenvía a Firebase todos los logros guardados en este navegador (de todos los meses), por si alguno se quedó sin sincronizar"><i class="ti ti-cloud-upload"></i> Forzar sincronización</button>
       </div>
     </div>
     <div id="ie-mensual"></div>
@@ -2480,184 +2486,6 @@ function linD(id,k){return(LINEAS.find(l=>l.id===id)||{short:id,color:'#888',pct
 // EXPORTAR INFORME → HTML descargable
 // ═══════════════════════════════════════════════════════════════
 
-function exportarInformeHTML() {
-  const mes = document.getElementById('mes-sel').value;
-  const fR  = document.getElementById('fm-resp').value;
-  const fL  = document.getElementById('fm-linea').value;
-  if(!mes){alert('Selecciona un mes primero.');return;}
-
-  const [anio,mn] = mes.split('-');
-  const MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const nomMes = MESES[parseInt(mn)];
-
-  let ts = tareas.filter(t=>t.compromiso&&t.compromiso.startsWith(mes));
-  if(fR) ts=ts.filter(t=>t.resp===fR);
-  if(fL) ts=ts.filter(t=>t.linea===fL);
-
-  const cerr=ts.filter(t=>t.estado==='Cerrada').length;
-  const venc=ts.filter(t=>t.estado==='Vencida').length;
-  const pend=ts.filter(t=>t.estado!=='Cerrada').length;
-  const pct=ts.length>0?Math.round(cerr/ts.length*100):0;
-
-  function progBar(linea){
-    const lt=ts.filter(t=>t.linea===linea.id);if(!lt.length)return'';
-    const lp=Math.round(lt.filter(t=>t.estado==='Cerrada').length/lt.length*100);
-    return`<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-        <span style="font-size:12px;color:#696660">${linea.short}</span>
-        <span style="font-size:11px;font-family:'DM Mono',monospace;color:${linea.color};font-weight:600">${lp}%</span>
-      </div>
-      <div style="height:8px;background:#edeae2;border-radius:4px;overflow:hidden">
-        <div style="width:${lp}%;height:100%;background:${linea.color};border-radius:4px"></div>
-      </div></div>`;
-  }
-
-  function taskRows(tList){
-    if(!tList.length)return'<tr><td colspan="5" style="color:#9b9890;text-align:center;padding:12px">Sin tareas registradas</td></tr>';
-    return tList.map(t=>{
-      const ec=t.estado==='Cerrada'?'#1a6030':t.estado==='Vencida'?'#b83232':t.estado==='En proceso'?'#8a6000':'#184880';
-      const eb=t.estado==='Cerrada'?'#edf7f1':t.estado==='Vencida'?'#fdf1f1':t.estado==='En proceso'?'#fdf8e8':'#edf3fc';
-      const rc=t.resp==='Sandra L'||t.resp==='SL'?'#4a1d96':t.resp==='AV'?'#184880':'#8a6000';
-      return`<tr style="border-bottom:1px solid #edeae2">
-        <td style="padding:7px 8px;font-size:11px;color:#888;font-family:monospace">${t.id_orig||'#'+String(t.id).padStart(3,'0')}</td>
-        <td style="padding:7px 8px;font-size:12px;color:#181715;max-width:280px">${t.desc||''}</td>
-        <td style="padding:7px 8px;font-size:11px;color:#555;font-style:italic">${t.notas||'—'}</td>
-        <td style="padding:7px 8px"><span style="font-size:10px;font-weight:600;color:${rc}">${t.resp||''}</span></td>
-        <td style="padding:7px 8px"><span style="font-size:10px;font-weight:600;background:${eb};color:${ec};border-radius:20px;padding:2px 8px">${t.estado||''}</span></td>
-      </tr>`;
-    }).join('');
-  }
-
-  const filtroLabel=fR?' · '+fR:fL?' · '+linD(fL,'short'):' · Equipo completo (SL · AV · JH)';
-
-  const lineaSecs=LINEAS.map(linea=>{
-    const lt=ts.filter(t=>t.linea===linea.id);if(!lt.length)return'';
-    const lc=lt.filter(t=>t.estado==='Cerrada').length;
-    const lv=lt.filter(t=>t.estado==='Vencida').length;
-    const lp=Math.round(lc/lt.length*100);
-    return`<div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${linea.color}">
-        <div style="width:7px;height:7px;border-radius:50%;background:${linea.color}"></div>
-        <span style="font-size:11px;font-weight:600;color:${linea.color};text-transform:uppercase;letter-spacing:.05em">${linea.short}</span>
-        <span style="font-size:11px;color:#9b9890;margin-left:auto">${lt.length} tareas · ${lc} cerradas · ${lv} vencidas · ${lp}%</span>
-      </div>
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="background:#f5f3ee">
-          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#9b9890;font-weight:600;border-bottom:1px solid #edeae2;text-transform:uppercase;letter-spacing:.05em">ID</th>
-          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#9b9890;font-weight:600;border-bottom:1px solid #edeae2;text-transform:uppercase;letter-spacing:.05em">Compromiso / Tarea</th>
-          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#9b9890;font-weight:600;border-bottom:1px solid #edeae2;text-transform:uppercase;letter-spacing:.05em">Seguimiento</th>
-          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#9b9890;font-weight:600;border-bottom:1px solid #edeae2;text-transform:uppercase;letter-spacing:.05em">Resp.</th>
-          <th style="padding:6px 8px;text-align:left;font-size:10px;color:#9b9890;font-weight:600;border-bottom:1px solid #edeae2;text-transform:uppercase;letter-spacing:.05em">Estado</th>
-        </tr></thead>
-        <tbody>${taskRows(lt)}</tbody>
-      </table></div>`;
-  }).join('');
-
-  const respRows=['Sandra L','AV','JH'].map(r=>{
-    const n=ts.filter(t=>t.resp===r).length;
-    const nc=ts.filter(t=>t.resp===r&&t.estado==='Cerrada').length;
-    const rc=r==='Sandra L'?'#4a1d96':r==='AV'?'#184880':'#8a6000';
-    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edeae2">
-      <span style="font-size:13px;font-weight:600;color:${rc}">${r==='Sandra L'?'SL (Sandra L.)':r}</span>
-      <span style="font-size:12px;color:#696660">${nc} cerradas / ${n} total</span>
-      <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:#2d5a3d">${n>0?Math.round(nc/n*100):0}%</span>
-    </div>`;
-  }).join('');
-
-  const html=`<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Informe Mensual GHT-RI · ${nomMes} ${anio}</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Poppins',sans-serif;background:#f5f3ee;color:#181715;font-size:13px;line-height:1.5}
-@media print{body{background:#fff}.no-print{display:none}@page{size:A4 landscape;margin:10mm}}
-.cover{background:linear-gradient(135deg,#1a3d28 0%,#2d5a3d 60%,#3d7a55 100%);color:#fff;padding:48px 56px;display:flex;justify-content:space-between;align-items:flex-end;min-height:160px}
-.cover h1{font-size:30px;font-weight:700;line-height:1.2;margin-bottom:6px}
-.cover p{font-size:13px;opacity:.8}
-.badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;display:inline-block;padding:3px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;margin-bottom:12px}
-.cover-r{text-align:right}
-.mes-big{font-size:48px;font-weight:700;opacity:.95}
-.year-sm{font-size:16px;opacity:.7;margin-bottom:4px}
-.page{padding:24px 32px;max-width:1200px;margin:0 auto}
-.card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.mv{text-align:center;padding:16px}
-.mvn{font-size:40px;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
-.mvl{font-size:11px;color:#9b9890;text-transform:uppercase;letter-spacing:.05em;margin-top:5px;font-weight:500}
-.mvs{font-size:11px;margin-top:3px}
-.sec{display:flex;align-items:center;gap:10px;margin:22px 0 14px;padding-bottom:8px;border-bottom:2px solid rgba(0,0,0,.08)}
-.sec h2{font-size:14px;font-weight:600}
-.sec .sub{font-size:11px;color:#9b9890;margin-left:auto}
-.print-btn{position:fixed;bottom:20px;right:20px;background:#2d5a3d;color:#fff;border:none;border-radius:50px;padding:10px 22px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(45,90,61,.3)}
-.print-btn:hover{background:#1a3d28}
-</style>
-</head>
-<body>
-<div class="cover">
-  <div>
-    <div class="badge">🌿 GHT-RI · Plan Estratégico 2026</div>
-    <h1>Informe Mensual de Gestión</h1>
-    <p>Relaciones Interinstitucionales GHT${filtroLabel}</p>
-  </div>
-  <div class="cover-r">
-    <div class="year-sm">${anio}</div>
-    <div class="mes-big">${nomMes}</div>
-  </div>
-</div>
-<div class="page">
-  <div class="sec"><h2>📊 Indicadores del mes</h2><span class="sub">${nomMes} ${anio}${filtroLabel}</span></div>
-  <div class="g5">
-    <div class="card mv"><div class="mvn" style="color:#181715">${ts.length}</div><div class="mvl">Tareas del mes</div></div>
-    <div class="card mv" style="border-top:3px solid #1a6030"><div class="mvn" style="color:#1a6030">${cerr}</div><div class="mvl">Cerradas</div><div class="mvs" style="color:#1a6030">${pct}% cumpl.</div></div>
-    <div class="card mv" style="border-top:3px solid #b83232"><div class="mvn" style="color:#b83232">${venc}</div><div class="mvl">Vencidas</div></div>
-    <div class="card mv" style="border-top:3px solid #8a6000"><div class="mvn" style="color:#8a6000">${pend-venc}</div><div class="mvl">Pendientes</div></div>
-    <div class="card mv" style="border-top:3px solid #2d5a3d;background:#e7f2ea"><div class="mvn" style="color:#2d5a3d">${pct}%</div><div class="mvl">Avance mes</div></div>
-  </div>
-  <div style="margin-top:20px" class="g2">
-    <div class="card">
-      <div style="font-size:11px;font-weight:600;color:#9b9890;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">Avance por línea de intervención</div>
-      ${LINEAS.map(l=>progBar(l)).join('')}
-      <div style="margin-top:14px;padding-top:10px;border-top:1px solid #edeae2">
-        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:12px;color:#181715;font-weight:600">Plan estratégico 2026</span>
-          <span style="font-size:12px;font-family:'DM Mono',monospace;color:#2d5a3d;font-weight:600">23.8%</span>
-        </div>
-        <div style="height:10px;background:#edeae2;border-radius:5px;overflow:hidden">
-          <div style="width:23.8%;height:100%;background:#2d5a3d;border-radius:5px"></div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:11px;font-weight:600;color:#9b9890;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">Carga por responsable</div>
-      ${respRows}
-    </div>
-  </div>
-  <div class="sec"><h2>📋 Gestión por línea de intervención</h2><span class="sub">${nomMes} ${anio}</span></div>
-  ${lineaSecs}
-  <div style="margin-top:16px;background:#2d5a3d;color:#fff;border-radius:10px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div style="font-size:11px;opacity:.7">GHT · Relaciones Interinstitucionales · Plan Estratégico 2026</div>
-      <div style="font-size:12px;font-weight:600">SL (Sandra Liliana, Directora) · AV (Andrés Villamil) · JH (Jeison H)</div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:11px;opacity:.7">Exportado desde Tablero GHT-RI 2026</div>
-      <div style="font-size:12px;font-family:'DM Mono',monospace;font-weight:600">${nomMes} ${anio} · 23.8% global</div>
-    </div>
-  </div>
-</div>
-<button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>`;
-
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;
-  a.download='Informe_GHT_RI_'+nomMes+'_'+anio+'.html';
-  a.click();URL.revokeObjectURL(url);
-}
 
 function setGlobalResp(resp, btn){
   window._globalResp = resp;
@@ -5048,6 +4876,40 @@ function getEmpresaById(id){
   return EMPRESAS.find(x=>x.id===id)||null;
 }
 
+function aFiltMesChanged(){
+  // Al seleccionar mes, limpiar rango de fechas
+  const desdeEl=document.getElementById('aFilt-desde');
+  const hastaEl=document.getElementById('aFilt-hasta');
+  if(desdeEl) desdeEl.value='';
+  if(hastaEl) hastaEl.value='';
+  const btn=document.getElementById('aFilt-fecha-clear');
+  if(btn) btn.style.display='none';
+  renderAcomp();
+}
+function aFiltDateChanged(){
+  // Al usar rango de fecha, limpiar selector de mes
+  const desde=document.getElementById('aFilt-desde')?.value||'';
+  const hasta=document.getElementById('aFilt-hasta')?.value||'';
+  if(desde||hasta){
+    const mesEl=document.getElementById('aFilt-mes');
+    if(mesEl) mesEl.value='';
+    const btn=document.getElementById('aFilt-fecha-clear');
+    if(btn) btn.style.display='';
+  } else {
+    const btn=document.getElementById('aFilt-fecha-clear');
+    if(btn) btn.style.display='none';
+  }
+  renderAcomp();
+}
+function aFiltFechaLimpiar(){
+  const desdeEl=document.getElementById('aFilt-desde');
+  const hastaEl=document.getElementById('aFilt-hasta');
+  if(desdeEl) desdeEl.value='';
+  if(hastaEl) hastaEl.value='';
+  const btn=document.getElementById('aFilt-fecha-clear');
+  if(btn) btn.style.display='none';
+  renderAcomp();
+}
 function renderAcomp(){
   const filtResp=document.getElementById('aFilt-resp')?.value||'';
   const filtZona=document.getElementById('aFilt-zona')?.value||'';
@@ -5055,6 +4917,9 @@ function renderAcomp(){
   const filtMes=document.getElementById('aFilt-mes')?.value||'';
   const filtModal=document.getElementById('aFilt-modal')?.value||'';
   const filtEmpresa=document.getElementById('aFilt-empresa')?.value||'';
+  const filtDesde=document.getElementById('aFilt-desde')?.value||'';
+  const filtHasta=document.getElementById('aFilt-hasta')?.value||'';
+  const usandoRangoFecha=!!(filtDesde||filtHasta);
   let d=acompData;
   if(filtResp){
     var _frLow=filtResp.toLowerCase().trim();
@@ -5065,13 +4930,20 @@ function renderAcomp(){
   }
   if(filtZona) d=d.filter(v=>v.zona===filtZona);
   if(filtTipo) d=d.filter(v=>v.tipo&&v.tipo.toLowerCase().includes(filtTipo.toLowerCase()));
-  if(filtMes){
-    // Sincronizar variables del calendario con el mes seleccionado
+  if(!usandoRangoFecha && filtMes){
+    // Solo aplica si NO hay rango de fecha activo
     var mesNum=parseInt(filtMes);
     acompCalMonth=mesNum-1; // 0-indexed
-    // NO filtramos los datos aquí — solo navegamos al mes; el calendario y Gantt muestran ese mes
-    // La lista sí filtra por mes para coherencia
     d=d.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===mesNum);
+  }
+  if(usandoRangoFecha){
+    // Rango de fecha activo — ignora el filtro de mes
+    d=d.filter(v=>{
+      if(!v.fecha) return false;
+      if(filtDesde && v.fecha < filtDesde) return false;
+      if(filtHasta && v.fecha > filtHasta) return false;
+      return true;
+    });
   }
   if(filtModal) d=d.filter(v=>v.modalidad===filtModal);
   if(filtEmpresa) d=d.filter(v=>v.empresa===filtEmpresa);
@@ -5088,12 +4960,12 @@ function renderAcomp(){
   renderAcompTable();
   renderAcompCalendar(d);
   renderAcompGantt(d);
-  renderVistaSemanal();
+  renderVistaSemanal(d);
   renderSedesSinVisitar();
 }
 
 // ── VISTA SEMANAL (semana actual + próxima semana, solo lectura) ──────
-function renderVistaSemanal(){
+function renderVistaSemanal(d){
   const cont=document.getElementById('a-vista-semanal');
   if(!cont) return;
   const hoy=new Date(); hoy.setHours(0,0,0,0);
@@ -5115,7 +4987,7 @@ function renderVistaSemanal(){
       const key=toKey(dt);
       const esFinde=i>=5;
       const esHoy=key===toKey(hoy);
-      const visitas=acompData.filter(v=>v.fecha===key);
+      const visitas=(d||acompData).filter(v=>v.fecha===key);
       totalVisitas+=visitas.length;
       const bg=esFinde?'var(--surface2)':headColor;
       const fg=esFinde?'var(--text3)':'#fff';
@@ -5884,371 +5756,7 @@ function renderMensual(){
     }
   } catch(e){}
 }
-function generarInforme(tList,mesStr){generarInformeEjecutivo(tList,mesStr,0,'');}
-function generarInformeEjecutivo(tList,mesStr,mesNum,filtResp){
-  if(!tList)tList=tareas;if(!mesStr)mesStr='';
-  const cont=document.getElementById('inf-ejecutivo');
-  if(!cont)return;
-  const today=new Date().toISOString().split('T')[0];
-  const comp=tList.filter(t=>['completado','cerrada','Cerrada','completada'].includes((t.estado||'').toLowerCase()));
-  const prog=tList.filter(t=>t.estado==='en_progreso');
-  const pend=tList.filter(t=>t.estado==='pendiente'||t.estado==='abierta');
-  const venc=tList.filter(t=>t.estado!=='completado'&&t.fechaVenc&&t.fechaVenc<today);
-  const compPct=tList.length?Math.round(comp.length/tList.length*100):0;
-  const mN=mesNum||(mesStr?['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].indexOf(mesStr):0);
-  const acomps=mN?acompData.filter(v=>v.fecha&&parseInt(v.fecha.split('-')[1])===mN):[];
-  const empresasVis=[...new Set(acomps.map(v=>v.empresa))].length;
-  const porLinea={};
-  tList.forEach(t=>{if(!porLinea[t.linea])porLinea[t.linea]=[];porLinea[t.linea].push(t);});
-  const fechaGen=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-  const html=`
-  <div style="max-width:900px;margin:0 auto">
-    <div style="background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 60%,#0A9396 100%);color:#fff;border-radius:var(--rl);padding:32px 40px;margin-bottom:20px;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(0,125,64,.18)">
-      <div style="position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;border:1px solid rgba(255,255,255,.1)"></div>
-      <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.6;margin-bottom:6px">GHT · Relaciones Interinstitucionales</div>
-      <div style="font-size:24px;font-weight:800;line-height:1.1;margin-bottom:4px">Informe Ejecutivo de Gestión</div>
-      <div style="font-size:18px;font-weight:400;opacity:.85">${mesStr} 2026${filtResp&&filtResp!=='Todo el equipo'?' · '+filtResp:''}</div>
-      <div style="margin-top:20px;display:flex;gap:24px;flex-wrap:wrap">
-        <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:10px;min-width:80px"><div style="font-size:28px;font-weight:700;color:#ffd54f">${tList.length+(planItems||[]).length+(pendItems||[]).length}</div><div style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.06em">Actividades</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:10px;min-width:80px"><div style="font-size:28px;font-weight:700;color:#a5d6a7">${compPct}%</div><div style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.06em">Cumplimiento</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:10px;min-width:80px"><div style="font-size:28px;font-weight:700;color:#fff">${acomps.length}</div><div style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.06em">Fort. Líderes y Eq.</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:10px;min-width:80px"><div style="font-size:28px;font-weight:700;color:#b2dfdb">${empresasVis}</div><div style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.06em">Empresas</div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:10px;min-width:80px"><div style="font-size:28px;font-weight:700;color:#ef9a9a">${venc.length}</div><div style="font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.06em">Alertas</div></div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;border-top:3px solid var(--accent)">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Completadas</div>
-        <div style="font-size:32px;font-weight:800;color:var(--accent)">${comp.length}</div>
-        <div style="margin-top:8px;background:var(--border);border-radius:4px;height:4px"><div style="width:${compPct}%;background:var(--accent);border-radius:4px;height:4px"></div></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">${compPct}% de ${tList.length}</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;border-top:3px solid #5c6bc0">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">En Progreso</div>
-        <div style="font-size:32px;font-weight:800;color:#5c6bc0">${prog.length}</div>
-        <div style="margin-top:8px;background:var(--border);border-radius:4px;height:4px"><div style="width:${tList.length?Math.round(prog.length/tList.length*100):0}%;background:#5c6bc0;border-radius:4px;height:4px"></div></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Actividades activas</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;border-top:3px solid #f59e0b">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Pendientes</div>
-        <div style="font-size:32px;font-weight:800;color:#f59e0b">${pend.length}</div>
-        <div style="margin-top:8px;background:var(--border);border-radius:4px;height:4px"><div style="width:${tList.length?Math.round(pend.length/tList.length*100):0}%;background:#f59e0b;border-radius:4px;height:4px"></div></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Sin iniciar</div>
-      </div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px;border-top:3px solid #e53935">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Alertas</div>
-        <div style="font-size:32px;font-weight:800;color:#e53935">${venc.length}</div>
-        <div style="margin-top:8px;background:var(--border);border-radius:4px;height:4px"><div style="width:${tList.length?Math.round(venc.length/tList.length*100):0}%;background:#e53935;border-radius:4px;height:4px"></div></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">Actividades vencidas</div>
-      </div>
-    </div>
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block"></span>Avance por Línea Estratégica</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${LINEAS.map(l=>{const arr=porLinea[l.id]||[];return `<div style="display:flex;align-items:center;gap:10px"><div style="flex:0 0 160px;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.short)}</div><div style="flex:1;background:var(--border);border-radius:4px;height:6px"><div style="width:${l.pct}%;background:${l.color};border-radius:4px;height:6px"></div></div><div style="flex:0 0 36px;text-align:right;font-size:11px;font-weight:700;color:${l.color}">${l.pct}%</div><div style="flex:0 0 50px;text-align:right;font-size:10px;color:var(--muted)">${arr.length} act.</div></div>`;}).join('')}
-      </div>
-    </div>
-    ${Object.keys(porLinea).length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:#5c6bc0;border-radius:50%;display:inline-block"></span>Actividades por Línea</div>
-      ${LINEAS.map(l=>{const arr=porLinea[l.id]||[];if(!arr.length)return '';return `<div style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px 10px;background:${l.color}10;border-radius:6px"><span style="width:10px;height:10px;background:${l.color};border-radius:50%;display:inline-block"></span><span style="font-size:12px;font-weight:700;color:${l.color}">${esc(l.short)}</span><span style="font-size:10px;color:var(--muted);margin-left:4px">${arr.length} actividades</span></div><div style="display:flex;flex-direction:column;gap:3px">${arr.map(t=>{const col={'completado':'#1b5e20','en_progreso':'#0d47a1','pendiente':'#b71c1c','abierta':'#757575'}[t.estado]||'#999';const bg={'completado':'#e8f5e9','en_progreso':'#e3f2fd','pendiente':'#ffebee','abierta':'#f5f5f5'}[t.estado]||'#f5f5f5';return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${bg};border-radius:6px;border-left:3px solid ${col}"><span style="font-size:10px;background:${col}22;color:${col};border-radius:10px;padding:1px 8px;flex-shrink:0;font-weight:600;min-width:72px;text-align:center">${esc(t.estado||'')}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:var(--muted);flex-shrink:0">${formatDate(t.fechaVenc||'')}</span></div>`;}).join('')}</div></div>`;}).join('')}
-    </div>`:''}
-    ${acomps.length?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:#0A9396;border-radius:50%;display:inline-block"></span>Acompañamientos · ${mesStr} 2026 <span style="font-size:10px;background:#e0f7fa;color:#0A9396;border-radius:10px;padding:2px 10px;margin-left:4px">${acomps.length} registros · ${empresasVis} empresas</span></div>
-      <div style="display:flex;flex-direction:column;gap:4px">
-        ${acomps.slice(0,20).map(v=>{const emp=getEmpresaById(v.empresa);const nEmp=emp?emp.nombre:v.empresa;const col=v.estado==='completado'?'#2d5a3d':'#5c6bc0';return `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg2,#f9f9f9);border-radius:8px;border-left:3px solid ${col}"><span style="font-size:11px;color:var(--muted);flex-shrink:0;min-width:85px">${formatDate(v.fecha)}</span><span style="font-weight:700;font-size:11px;flex-shrink:0;min-width:30px;color:var(--accent)">${esc(v.empresa)}</span><span style="flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${esc(nEmp.length>35?nEmp.substring(0,35)+'…':nEmp)}</span><span style="font-size:10px;background:${col}22;color:${col};border-radius:10px;padding:1px 8px;flex-shrink:0;font-weight:600">${esc(v.estado)}</span></div>`;}).join('')}
-        ${acomps.length>20?`<div style="text-align:center;font-size:11px;color:var(--muted);padding:6px">+${acomps.length-20} registros más</div>`:''}
-      </div>
-    </div>`:''}
-    ${venc.length?`<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:var(--rl);padding:16px 20px;margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:#e65100;margin-bottom:10px">⚠️ Actividades Vencidas</div><div style="display:flex;flex-direction:column;gap:4px">${venc.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff8f0;border-radius:6px"><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo||'')}</span><span style="font-size:10px;color:#e65100;flex-shrink:0">${esc(t.responsable||'')}</span><span style="font-size:10px;color:#e53935;font-weight:600;flex-shrink:0">Vencida: ${formatDate(t.fechaVenc)}</span></div>`).join('')}</div></div>`:''}
-    <div style="text-align:center;font-size:10px;color:var(--muted);padding:16px;border-top:1px solid var(--border)">
-      Generado el ${fechaGen} · GHT Corp – Relaciones Interinstitucionales · Plan Estratégico 2026
-    </div>
-  </div>`;
-  cont.innerHTML=html;
 }
-// ── MOTOR UNIFICADO DE INFORMES EJECUTIVOS V2 ─────────────────────
-function buildInformeEjecutivoV2(opts){
-  const {tipo,periodoStr,resp,mesesKeys,tareasF,acompsF,containerEl,respFilter}=opts;
-  const _bMatchR=(r)=>{
-    if(!respFilter) return true;
-    const s=(r||'').toLowerCase();
-    return s.includes(respFilter.toLowerCase().split(' ')[0])||
-      (respFilter==='Sandra L'&&(s.includes('sandra')||s.includes('slg')))||
-      (respFilter==='AV'&&(s.includes('andres')||s.includes('villamil')))||
-      (respFilter==='JH'&&(s.includes('jeison')||s.includes('hurtado')));
-  };
-  const fechaGen=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
-
-  // ─ Helpers ─
-  function estLabel(pct){
-    if(pct>=90) return {l:'En Meta',c:'#1b5e20',bg:'#e8f5e9'};
-    if(pct>=70) return {l:'En Avance',c:'#1565c0',bg:'#e3f2fd'};
-    if(pct>=50) return {l:'En Riesgo',c:'#e65100',bg:'#fff3e0'};
-    return {l:'Crítico',c:'#b71c1c',bg:'#ffebee'};
-  }
-  function bar(pct,color){
-    const w=Math.min(Math.round(pct),100);
-    return `<div style="background:#e0e0e0;border-radius:4px;height:8px;width:100%"><div style="width:${w}%;background:${color};border-radius:4px;height:8px"></div></div>`;
-  }
-  function resumenTexto(pct,n){
-    if(pct>=90) return `La línea <b>${n}</b> alcanza sus metas del período con un avance superior al 90%.`;
-    if(pct>=70) return `La línea <b>${n}</b> muestra avance satisfactorio; se recomienda mantener el ritmo de ejecución.`;
-    if(pct>=50) return `La línea <b>${n}</b> presenta rezago moderado; requiere atención y seguimiento reforzado.`;
-    return `La línea <b>${n}</b> está en estado crítico; se requieren acciones correctivas urgentes.`;
-  }
-  function alertaTexto(venc,pct){
-    const alertas=[];
-    if(venc>0) alertas.push(`⚠️ ${venc} actividad${venc>1?'es':''} vencida${venc>1?'s':''} sin completar`);
-    if(pct<50) alertas.push('🔴 Avance crítico – revisar plan de acción');
-    else if(pct<70) alertas.push('🟠 Avance en riesgo – requiere seguimiento');
-    return alertas.length?alertas.join(' &nbsp;|&nbsp; '):'✅ Sin alertas';
-  }
-
-  // ─ Datos de plan por línea ─
-  const planPorLinea={};
-  LINEAS.forEach(l=>{ planPorLinea[l.rawName]={p:0,e:0,rows:[]}; });
-  PLAN_ROWS_FULL.forEach((r,origIdx)=>{
-    const bucket=planPorLinea[r.linea];
-    if(!bucket) return;
-    if(!_bMatchR(r.responsable)) return; // filtro responsable desde VISTA DE
-    let rp=0,re=0;
-    mesesKeys.forEach(mk=>{
-      const md=r.meses&&r.meses[mk]?r.meses[mk]:{p:0,e:0};
-      rp+=md.p||0;
-      re+=getPlanE(origIdx,mk,md.e||0);
-    });
-    bucket.p+=rp; bucket.e+=re; bucket.rows.push({r,origIdx,p:rp,e:re});
-  });
-
-  const totalP=Object.values(planPorLinea).reduce((s,v)=>s+v.p,0);
-  const totalE=Object.values(planPorLinea).reduce((s,v)=>s+v.e,0);
-  const pctGlobal=totalP>0?Math.round(totalE/totalP*100):0;
-  const estG=estLabel(pctGlobal);
-
-  // ─ Tareas stats ─
-  const tTotal=tareasF.length;
-  const tComp=tareasF.filter(t=>t.estado==='completado').length;
-  const tVenc=tareasF.filter(t=>t.estado!=='completado'&&t.fechaVenc&&new Date(t.fechaVenc)<new Date()).length;
-  const tPend=tTotal-tComp;
-  const aTotal=acompsF.length;
-  const aComp=acompsF.filter(a=>a.estado==='Realizado'||a.estado==='realizado').length;
-
-  // ─ Tipo de badge ─
-  const tipoBadge={'Semanal':'#1565c0','Mensual':'#1b5e20','Trimestral':'#4a148c','Anual':'#b71c1c'};
-  const bColor=tipoBadge[tipo]||'#333';
-
-  // ── SECCIÓN 1: Encabezado ──────────────────────────────────────────
-  const s1=`<div style="background:linear-gradient(135deg,#1b2a4a 0%,#2e4a7a 100%);border-radius:12px;padding:28px 32px;margin-bottom:20px;color:#fff">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="background:${bColor};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px">${tipo.toUpperCase()}</span>
-          ${resp?`<span style="background:rgba(255,255,255,.15);color:#fff;font-size:11px;padding:3px 10px;border-radius:20px">${esc(resp)}</span>`:''}
-        </div>
-        <div style="font-size:22px;font-weight:700;margin-bottom:4px">Informe Ejecutivo – ${esc(periodoStr)}</div>
-        <div style="font-size:13px;opacity:.8">GHT Corp · Gestión Humana · Ruta de Intervención 2026</div>
-      </div>
-      <div style="text-align:right;font-size:12px;opacity:.7">
-        <div>Generado: ${fechaGen}</div>
-        <div style="margin-top:4px;font-size:28px;font-weight:700">${pctGlobal}%</div>
-        <div style="font-size:11px">Avance global</div>
-      </div>
-    </div>
-  </div>`;
-
-  // ── SECCIÓN 2: Resumen General (KPIs) ─────────────────────────────
-  const kpiCard=(val,lbl,color)=>`<div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:16px 20px;text-align:center;flex:1;min-width:130px">
-    <div style="font-size:28px;font-weight:700;color:${color}">${val}</div>
-    <div style="font-size:12px;color:#666;margin-top:4px">${lbl}</div>
-  </div>`;
-
-  const alertasGen=[];
-  if(tVenc>0) alertasGen.push(`⚠️ ${tVenc} tarea${tVenc>1?'s':''} vencida${tVenc>1?'s':''}`);
-  if(pctGlobal<50) alertasGen.push('🔴 Avance global crítico');
-  else if(pctGlobal<70) alertasGen.push('🟠 Avance por debajo de meta');
-  if(alertasGen.length===0) alertasGen.push('✅ Sin alertas críticas');
-
-  const logros=[];
-  LINEAS.forEach(l=>{
-    const d=planPorLinea[l.rawName]||{p:0,e:0};
-    const p=d.p>0?Math.round(d.e/d.p*100):0;
-    if(p>=90) logros.push(l.short);
-  });
-
-  const recomendaciones=[];
-  LINEAS.forEach(l=>{
-    const d=planPorLinea[l.rawName]||{p:0,e:0};
-    const p=d.p>0?Math.round(d.e/d.p*100):0;
-    if(p<70) recomendaciones.push(`Reforzar <b>${esc(l.short)}</b> (${p}%)`);
-  });
-  if(recomendaciones.length===0) recomendaciones.push('Mantener ritmo de ejecución actual');
-
-  const s2=`<div style="margin-bottom:20px">
-    <div style="font-size:16px;font-weight:700;color:#1b2a4a;margin-bottom:12px;border-left:4px solid #1b2a4a;padding-left:10px">Resumen General</div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-      ${kpiCard(pctGlobal+'%','Avance Global',estG.c)}
-      ${kpiCard(tComp+'/'+tTotal,'Tareas Completadas','#1565c0')}
-      ${kpiCard(tVenc,'Tareas Vencidas',tVenc>0?'#b71c1c':'#1b5e20')}
-      ${kpiCard(aComp+'/'+aTotal,'Acompañamientos','#4a148c')}
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div style="background:#f8fffe;border:1px solid #c8e6c9;border-radius:8px;padding:14px">
-        <div style="font-size:12px;font-weight:700;color:#1b5e20;margin-bottom:8px">✅ LOGROS DESTACADOS</div>
-        ${logros.length?logros.map(l=>`<div style="font-size:12px;color:#2e7d32;margin-bottom:4px">• ${esc(l)}</div>`).join(''):`<div style="font-size:12px;color:#555">Sin líneas en meta este período.</div>`}
-      </div>
-      <div style="background:#fff8f0;border:1px solid #ffe0b2;border-radius:8px;padding:14px">
-        <div style="font-size:12px;font-weight:700;color:#e65100;margin-bottom:8px">⚠️ ALERTAS</div>
-        ${alertasGen.map(a=>`<div style="font-size:12px;color:#e65100;margin-bottom:4px">${a}</div>`).join('')}
-      </div>
-    </div>
-    <div style="background:#f0f4ff;border:1px solid #c5cae9;border-radius:8px;padding:14px;margin-top:12px">
-      <div style="font-size:12px;font-weight:700;color:#283593;margin-bottom:8px">💡 RECOMENDACIONES</div>
-      ${recomendaciones.map(r=>`<div style="font-size:12px;color:#283593;margin-bottom:4px">• ${r}</div>`).join('')}
-    </div>
-  </div>`;
-
-  // ── SECCIÓN 3: Avance por Línea ────────────────────────────────────
-  let s3html='';
-  LINEAS.forEach(l=>{
-    const d=planPorLinea[l.rawName]||{p:0,e:0,rows:[]};
-    const pct=d.p>0?Math.round(d.e/d.p*100):0;
-    const est=estLabel(pct);
-    const tLinea=tareasF.filter(t=>t.linea===l.rawName||t.linea===l.id||t.linea===l.short);
-    const tCompL=tLinea.filter(t=>t.estado==='completado').length;
-    const tVencL=tLinea.filter(t=>t.estado!=='completado'&&t.fechaVenc&&new Date(t.fechaVenc)<new Date()).length;
-    const topActs=d.rows.filter(r=>r.p>0).sort((a,b)=>b.p-a.p).slice(0,4);
-    s3html+=`<div style="background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:18px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="background:${l.color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${l.id}</span>
-          <span style="font-size:14px;font-weight:700;color:#1b2a4a">${esc(l.short)}</span>
-        </div>
-        <span style="background:${est.bg};color:${est.c};font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px">${pct}% – ${est.l}</span>
-      </div>
-      <div style="margin-bottom:8px">${bar(pct,l.color)}</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555;margin-bottom:10px">
-        <span>📋 Plan: <b>${d.p}</b></span>
-        <span>✅ Ejecutado: <b>${d.e}</b></span>
-        <span>🔵 Tareas: ${tCompL}/${tLinea.length}</span>
-        ${tVencL>0?`<span style="color:#b71c1c">⚠️ Vencidas: ${tVencL}</span>`:''}
-      </div>
-      ${topActs.length?`<div style="font-size:11px;color:#777;margin-bottom:4px;font-weight:600">Actividades principales:</div>
-      ${topActs.map(a=>`<div style="font-size:11px;color:#444;padding:3px 0;border-bottom:1px solid #f5f5f5">• ${esc(a.r.detalle||a.r.tipo||'(sin detalle)')}</div>`).join('')}`:''}
-      <div style="margin-top:8px;font-size:11px;padding:8px;background:#fafafa;border-radius:6px;color:#555">${alertaTexto(tVencL,pct)}</div>
-    </div>`;
-  });
-  const s3=`<div style="margin-bottom:20px">
-    <div style="font-size:16px;font-weight:700;color:#1b2a4a;margin-bottom:12px;border-left:4px solid #4caf50;padding-left:10px">Avance por Línea de Intervención</div>
-    ${s3html}
-  </div>`;
-
-  // ── SECCIÓN 4: Indicadores de Gestión ─────────────────────────────
-  const s4rows=LINEAS.map(l=>{
-    const d=planPorLinea[l.rawName]||{p:0,e:0};
-    const pct=d.p>0?Math.round(d.e/d.p*100):0;
-    const est=estLabel(pct);
-    const prev=d.p>0?Math.round(d.e/d.p*90):0;
-    const tend=pct>=prev?'📈':'📉';
-    return `<tr>
-      <td style="padding:8px 10px"><span style="background:${l.color};color:#fff;font-size:10px;padding:2px 8px;border-radius:10px">${l.id}</span> ${esc(l.short)}</td>
-      <td style="padding:8px 10px;text-align:center">${d.p}</td>
-      <td style="padding:8px 10px;text-align:center">${d.e}</td>
-      <td style="padding:8px 10px;text-align:center"><b>${pct}%</b><br>${bar(pct,l.color)}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:16px">${tend}</td>
-      <td style="padding:8px 10px"><span style="background:${est.bg};color:${est.c};font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px">${est.l}</span></td>
-    </tr>`;
-  }).join('');
-  const s4=`<div style="margin-bottom:20px">
-    <div style="font-size:16px;font-weight:700;color:#1b2a4a;margin-bottom:12px;border-left:4px solid #9c27b0;padding-left:10px">Indicadores de Gestión</div>
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
-      <thead>
-        <tr style="background:#1b2a4a;color:#fff">
-          <th style="padding:10px;text-align:left">Línea</th>
-          <th style="padding:10px">Plan.</th>
-          <th style="padding:10px">Ejec.</th>
-          <th style="padding:10px;min-width:120px">% Cumplimiento</th>
-          <th style="padding:10px">Tendencia</th>
-          <th style="padding:10px">Estado</th>
-        </tr>
-      </thead>
-      <tbody>${s4rows}</tbody>
-    </table>
-    </div>
-  </div>`;
-
-  // ── SECCIÓN 5: Consolidado Operativa ───────────────────────────────
-  const tipoGMap={};
-  tareasF.forEach(t=>{
-    const tg=t.tipoGestion||t.tipo||'Sin clasificar';
-    if(!tipoGMap[tg]) tipoGMap[tg]={total:0,comp:0,venc:0};
-    tipoGMap[tg].total++;
-    if(t.estado==='completado') tipoGMap[tg].comp++;
-    if(t.estado!=='completado'&&t.fechaVenc&&new Date(t.fechaVenc)<new Date()) tipoGMap[tg].venc++;
-  });
-  const s5rows=Object.entries(tipoGMap).sort((a,b)=>b[1].total-a[1].total).map(([tg,v])=>{
-    const p=v.total>0?Math.round(v.comp/v.total*100):0;
-    const est=estLabel(p);
-    return `<tr>
-      <td style="padding:8px 10px">${esc(tg)}</td>
-      <td style="padding:8px 10px;text-align:center">${v.total}</td>
-      <td style="padding:8px 10px;text-align:center;color:#1b5e20;font-weight:600">${v.comp}</td>
-      <td style="padding:8px 10px;text-align:center">${v.total-v.comp-v.venc}</td>
-      <td style="padding:8px 10px;text-align:center;color:${v.venc>0?'#b71c1c':'#1b5e20'}">${v.venc}</td>
-      <td style="padding:8px 10px;text-align:center"><b>${p}%</b></td>
-      <td style="padding:8px 10px"><span style="background:${est.bg};color:${est.c};font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px">${est.l}</span></td>
-    </tr>`;
-  }).join('');
-  const s5=`<div style="margin-bottom:20px">
-    <div style="font-size:16px;font-weight:700;color:#1b2a4a;margin-bottom:12px;border-left:4px solid #ff9800;padding-left:10px">Consolidado de Gestión Operativa</div>
-    ${s5rows?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden">
-      <thead><tr style="background:#37474f;color:#fff">
-        <th style="padding:10px;text-align:left">Tipo de Gestión</th>
-        <th style="padding:10px">Total</th><th style="padding:10px">Completadas</th>
-        <th style="padding:10px">En curso</th><th style="padding:10px">Vencidas</th>
-        <th style="padding:10px">% Compl.</th><th style="padding:10px">Estado</th>
-      </tr></thead>
-      <tbody>${s5rows}</tbody>
-    </table></div>`:`<div style="font-size:13px;color:#888;padding:16px">Sin datos de tareas para este período.</div>`}
-  </div>`;
-
-  // ── SECCIÓN 6: Resumen Ejecutivo por Línea ─────────────────────────
-  const prioridadesMap={
-    'L1':'Consolidar cultura organizacional y marca empleadora',
-    'L2':'Fortalecer análisis de productividad y voz del empleado',
-    'L3':'Ampliar cobertura de acompañamiento y formación',
-    'L4':'Expandir alianzas estratégicas y bienestar integral',
-    'L5':'Optimizar procesos de selección y gestión del talento',
-    'L6':'Mejorar indicadores de clima y desarrollo organizacional',
-    'L7':'Fortalecer gestión administrativa y sistemas de información'
-  };
-  let s6html='';
-  LINEAS.forEach(l=>{
-    const d=planPorLinea[l.rawName]||{p:0,e:0};
-    const pct=d.p>0?Math.round(d.e/d.p*100):0;
-    const est=estLabel(pct);
-    s6html+=`<div style="border-left:4px solid ${l.color};padding:12px 16px;margin-bottom:10px;background:#fafafa;border-radius:0 8px 8px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:13px;font-weight:700;color:#1b2a4a">${esc(l.short)}</span>
-        <span style="background:${est.bg};color:${est.c};font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">${pct}%</span>
-      </div>
-      <div style="font-size:12px;color:#444;margin-bottom:6px">${resumenTexto(pct,l.short)}</div>
-      <div style="font-size:11px;color:#777"><b>Próxima prioridad:</b> ${esc(prioridadesMap[l.id]||'Continuar ejecución según plan')}</div>
-    </div>`;
-  });
-  const s6=`<div style="margin-bottom:20px">
-    <div style="font-size:16px;font-weight:700;color:#1b2a4a;margin-bottom:12px;border-left:4px solid #f44336;padding-left:10px">Resumen Ejecutivo Final por Línea</div>
-    ${s6html}
-  </div>`;
-
-  // ── Footer ─────────────────────────────────────────────────────────
-  const footer=`<div style="text-align:center;font-size:10px;color:#999;padding:16px;border-top:1px solid #eee;margin-top:8px">
-    Generado el ${fechaGen} · GHT Corp – Gestión Humana · Ruta de Intervención 2026
-  </div>`;
-
-  containerEl.innerHTML='<div style="max-width:1000px;margin:0 auto">'+s1+s2+s3+s4+s5+s6+footer+'</div>';
-}
-
 // ── SEGUIMIENTO PE – helpers ──────────────────────────────────────
 function poblarTiposSeg(linea){
   const sel=document.getElementById('fseg-tipo');
@@ -6868,7 +6376,6 @@ function init(){
   } catch(e){ ejecucionLog=[]; }
   loadData();
   loadHistSem(); // restaurar histórico de ejecución semanal registrado
-  autoVencer();
   loadAcompData();
   if(typeof _syncAcompMesSel==='function') _syncAcompMesSel();
   populateSelectors();
@@ -9831,6 +9338,68 @@ function forzarSyncLogros() {
     }
   } catch(e) {
     if (typeof showAlert === 'function') showAlert('⚠️ No se pudo forzar la sincronización. Revisa tu conexión.', 'error');
+  }
+}
+
+// ── ACTUALIZAR TODO: descarga Firebase y re-renderiza todos los módulos ──
+async function actualizarTodo(){
+  if(typeof showAlert==='function') showAlert('☁️ Consultando la información más reciente...','info');
+  try{
+    if(_db){
+      // Tareas
+      var snapT=await _db.collection('ght_ri_2026').doc('ri2026v4').get();
+      if(snapT.exists && snapT.data().value!=null){
+        var rawT=snapT.data().value;
+        _sharedCache['ri2026v4']=rawT;
+        try{localStorage.setItem('ri2026v4',rawT);}catch(e){}
+        var dT=JSON.parse(rawT);
+        if(dT&&dT.tareas!==undefined){tareas=Array.isArray(dT.tareas)?dT.tareas:[];nextId=dT.nextId||nextId;}
+      }
+      // Visitas / Acompañamientos
+      var snapA=await _db.collection('ght_ri_2026').doc('ght_v2').get();
+      if(snapA.exists && snapA.data().value!=null){
+        var rawA=snapA.data().value;
+        _sharedCache['ght_v2']=rawA;
+        try{localStorage.setItem('ght_v2',rawA);}catch(e){}
+        var dA=JSON.parse(rawA);
+        if(dA&&dA.visits!==undefined){acompData=Array.isArray(dA.visits)?dA.visits:[];}
+      }
+      // Logros
+      var snapL=await _db.collection('ght_ri_2026').doc('ri2026_logros_edits').get();
+      if(snapL.exists && snapL.data().value!=null){
+        var rawL=snapL.data().value;
+        _sharedCache['ri2026_logros_edits']=rawL;
+        var remoteLg=JSON.parse(rawL||'{}');
+        Object.keys(remoteLg).forEach(function(k){_logrosEdits[k]=remoteLg[k];});
+        try{localStorage.setItem('ri2026_logros_edits',JSON.stringify(_logrosEdits));}catch(e){}
+      }
+    }
+    // Re-renderizar todos los módulos
+    if(typeof renderDashboard==='function') renderDashboard();
+    if(typeof renderAcomp==='function') renderAcomp();
+    if(typeof renderMensual==='function') renderMensual();
+    if(typeof renderGestion==='function') renderGestion();
+    if(typeof renderHoy==='function') renderHoy();
+    if(typeof actualizarAvanceGlobal==='function') actualizarAvanceGlobal();
+    if(typeof actualizarBadge==='function') actualizarBadge();
+    if(typeof showAlert==='function') showAlert('✅ Todos los módulos actualizados con la información más reciente.','success');
+  }catch(e){
+    console.warn('Error en actualizarTodo:',e);
+    if(typeof showAlert==='function') showAlert('⚠️ No se pudo conectar con Firebase. Revisa tu conexión.','error');
+  }
+}
+
+// ── SINCRONIZAR TODO: paso 1 actualizar, paso 2 forzar sync ──────────────
+async function sincronizarTodo(){
+  await actualizarTodo();
+  try{
+    saveData();
+    saveAcompData();
+    forzarSyncLogros();
+    if(typeof showAlert==='function') showAlert('☁️ Sincronización completa: todos los datos enviados a Firebase.','success');
+  }catch(e){
+    console.warn('Error en sincronizarTodo:',e);
+    if(typeof showAlert==='function') showAlert('⚠️ Error al sincronizar. Revisa tu conexión.','error');
   }
 }
 
